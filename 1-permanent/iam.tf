@@ -54,3 +54,15 @@ resource "aws_iam_role" "stagelog_rds_rambda_role_managed" {
     "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
   ]
 }
+
+resource "aws_iam_instance_profile" "backend_profile" {
+  name = "stagelog-backend-profile"
+
+  role = aws_iam_role.Combine_SSM_CloudWatchlog_S3_Uploader_Managed.name
+}
+
+resource "aws_iam_instance_profile" "frontend_profile" {
+  name = "stagelog-frontend-profile"
+
+  role = aws_iam_role.SSM_CloudWatchlog_Role_Managed.name
+}

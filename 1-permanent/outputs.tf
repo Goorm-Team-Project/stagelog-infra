@@ -40,6 +40,14 @@ output "iam_roles" {
     }
 }
 
+output "iam_instance_backend_profile_name" {
+    value = aws_iam_instance_profile.backend_profile.name
+}
+
+output "iam_frontend_profile_name" {
+    value = aws_iam_instance_profile.frontend_profile.name
+}
+
 output "rds_endpoint" {
     description = "RDS Endpoint Address:Port"
     value = aws_db_instance.stagelog-rds-managed.endpoint

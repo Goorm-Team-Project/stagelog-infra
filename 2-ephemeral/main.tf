@@ -47,6 +47,9 @@ locals {
 
   iam_SSM_CloudWatchlog_Role = data.terraform_remote_state.permanent.outputs.iam_roles["SSM_CloudWatchlog_Role"]
   iam_Combine_SSM_CloudWatchlog_S3_Uploader = data.terraform_remote_state.permanent.outputs.iam_roles["Combine_SSM_CloudWatchlog_S3_Uploader"]
+
+  backend_iam_role_profile = data.terraform_remote_state.permanent.outputs.iam_instance_backend_profile_name
+  frontend_iam_role_profile = data.terraform_remote_state.permanent.outputs.iam_frontend_profile_name
 }
 
 # local.subnet-public-01 과 같은 이름으로 사용

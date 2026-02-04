@@ -8,6 +8,8 @@ resource "aws_instance" "stagelog-backend" {
 
   private_ip = "10.1.3.152"
 
+  iam_instance_profile = local.backend_iam_role_profile
+
   root_block_device {
     volume_size = 8
     volume_type = "gp3"
@@ -27,6 +29,8 @@ resource "aws_instance" "stagelog-frontend" {
   key_name = "my-cicd-rsa"
 
   private_ip = "10.1.3.140"
+
+  iam_instance_profile = local.frontend_iam_role_profile
 
   root_block_device {
     volume_size = 8
