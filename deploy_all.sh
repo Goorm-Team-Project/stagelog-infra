@@ -14,6 +14,10 @@ if [ -f "$LOCK_FILE" ]; then
   exit 1
 fi
 
+if [ -f "./.env" ]; then
+    source "./.env"
+fi
+
 echo "Github CLI 로그인 상태를 확인합니다."
 if ! gh auth status > /dev/null 2>&1; then
   echo "Error: GitHub CLI에 로그인이 되어 있지 않습니다."
@@ -52,3 +56,14 @@ echo "============================================================"
 echo "작업이 완료 되었습니다."
 
 touch "$LOCK_FILE"
+
+MESSAGE="🚀 [Stagelog] 인프라 배포 및 서버 시작이 완료되었습니다!"
+
+if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+    curl -H "Content-Type: application/json" \
+         -X POST \
+         -d "{\"content\": \"$MESSAGE\"}" \
+         "$DISCORD_WEBHOOK_URL"
+else
+    echo "🔔 (알림 스킵) .env 파일에 DISCORD_WEBHOOK_URL이 없습니다."
+fi

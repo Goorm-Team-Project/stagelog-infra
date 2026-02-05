@@ -12,6 +12,10 @@ if [ ! -f "$LOCK_FILE" ]; then
   exit 1
 fi
 
+if [ -f "./.env" ]; then
+    source "./.env"
+fi
+
 echo "AWS CLI 접근 권한을 확인합니다."
 if ! aws sts get-caller-identity > /dev/null 2>&1; then
   echo "Error: AWS에 접근할 수 없습니다."
@@ -32,3 +36,14 @@ echo "============================================================"
 echo "작업이 완료 되었습니다."
 
 rm -f "$LOCK_FILE"
+
+MESSAGE="👋 [Stagelog] 인프라 삭제 및 RDS 정지 완료."
+
+if [ -n "$DISCORD_WEBHOOK_URL" ]; then
+    curl -H "Content-Type: application/json" \
+         -X POST \
+         -d "{\"content\": \"$MESSAGE\"}" \
+         "$DISCORD_WEBHOOK_URL"
+else
+    echo "🔔 (알림 스킵) .env 파일에 DISCORD_WEBHOOK_URL이 없습니다."
+fi
