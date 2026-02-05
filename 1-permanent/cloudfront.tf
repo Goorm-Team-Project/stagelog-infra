@@ -9,7 +9,7 @@ resource "aws_cloudfront_distribution" "uploads_cdn" {
   enabled = true
 
   origin {
-    domain_name              = aws_s3_bucket.stagelog-dev-uploads-v2.bucket_regional_domain_name
+    domain_name              = aws_s3_bucket.stagelog_dev_uploads_v2.bucket_regional_domain_name
     origin_id                = "uploads-s3"
     origin_access_control_id = aws_cloudfront_origin_access_control.uploads_oac.id
   }
