@@ -1,18 +1,19 @@
 # 이미지 s3
 resource "aws_s3_bucket" "stagelog-dev-uploads" {
     bucket = "stagelog-dev-uploads"
-    # 모든 퍼블릭 액세스 차단 허용
+    # 모든 퍼블릭 액세스 차단
 
     tags = { Name = "stagelog-s3-uploads" }
 }
 
+# 이미지 S3 PAB All True -> public 회귀 구조적 차단
 resource "aws_s3_bucket_public_access_block" "stagelog-dev-uploads-block" {
     bucket = aws_s3_bucket.stagelog-dev-uploads.id
 
-    block_public_acls       = false
-    block_public_policy     = false
-    ignore_public_acls      = false
-    restrict_public_buckets = false
+    block_public_acls       = true
+    block_public_policy     = true
+    ignore_public_acls      = true
+    restrict_public_buckets = true
 }
 
 # 이미지 S3 버킷 정책
@@ -46,5 +47,32 @@ resource "aws_s3_bucket_cors_configuration" "stagelog-dev-uploads-cors" {
         allowed_origins = ["*"]
         expose_headers = ["ETag", "x-amz-request-id", "x-amz-id-2"]
         max_age_seconds = 3000
+    }
+}
+
+# 이미지 S3 객체 소유권 (ACL 비활성화 = BucketOwnerEnforced)
+resource "aws_s3_bucket_ownership_controls" "uploads_ownership" {
+    bucket = aws_s3_bucket.stagelog-dev-uploads.id
+
+    rule {
+        object_ownership = "BucketOwnerEnforced"
+    }
+}
+
+# 이미지 S3 수명 주기 (삭제 비활성화 + 멀티파트 정리)
+resource "aws_s3_bucket_lifecycle_configuration" "uploads_lifecycle" {
+    bucket = aws_s3_bucket.stagelog-dev-uploads.id
+
+    rule {
+        id = "uploads-abort-incomplete-mpu"
+        status = "Enabled"
+
+        filter {
+            prefix = "uploads/"
+        }
+
+        abort_incomplete_multipart_upload {
+            days_after_initiation = 7
+        }
     }
 }
