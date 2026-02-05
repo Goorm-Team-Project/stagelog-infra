@@ -19,22 +19,7 @@ resource "aws_s3_bucket_public_access_block" "stagelog-dev-uploads-block" {
 # 이미지 S3 버킷 정책
 resource "aws_s3_bucket_policy" "stagelog-dev-uploads-policy" {
     bucket = aws_s3_bucket.stagelog-dev-uploads-v2.id
-
-    depends_on = [aws_s3_bucket_public_access_block.stagelog-dev-uploads-block] // S3 버킷 퍼블릭 액세스 블록 리소스에 의존
-
-    policy = jsonencode({
-        Version = "2012-10-17"
-        Statement = [
-            {
-                Effect = "Allow"
-                Principal = "*"
-                Action = [
-                    "s3:GetObject"
-                ]
-                Resource = "${aws_s3_bucket.stagelog-dev-uploads.arn}/uploads/*"
-            }
-        ]
-    })
+    policy = data.aws_iam_policy_document.uploads_cdn_read.json
 }
 
 # 이미지 S3 CORS
@@ -73,6 +58,27 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads_lifecycle" {
 
         abort_incomplete_multipart_upload {
             days_after_initiation = 7
+        }
+    }
+}
+
+data "aws_iam_policy_document" "uploads_cdn_read" {
+    statement {
+        sid = "AllowCloudFrontOACRead"
+        effect = "Allow"
+
+        principals {
+            type = "Service"
+            identifiers = ["cloudfront.amazonaws.com"]
+        }
+
+        actions = ["s3:GetObject"]
+        resources = ["${aws_s3_bucket.stagelog-dev-uploads-v2.arn}/uploads/*"]
+
+        condition {
+            test = "StringEquals"
+            variable = "AWS:SourceArn"
+            values = [aws_cloudfront_distribution.uploads_cdn.arn]
         }
     }
 }
