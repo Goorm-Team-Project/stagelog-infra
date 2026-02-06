@@ -57,3 +57,19 @@ output "rds_address" {
     description = "RDS Address"
     value       = aws_db_instance.stagelog-rds-managed.address
 }
+
+output "uploads_cloudfront_domain" {
+    value = aws_cloudfront_distribution.uploads_cdn.domain_name
+}
+
+output "uploads_cloudfront_distribution_id" {
+    value = aws_cloudfront_distribution.uploads_cdn.id
+}
+
+output "uploads_public_base_url" {
+    value = "https://${aws_cloudfront_distribution.uploads_cdn.domain_name}"
+}
+
+output "uploads_bucket_name" {
+  value = aws_s3_bucket.stagelog_dev_uploads_v2.bucket
+}
