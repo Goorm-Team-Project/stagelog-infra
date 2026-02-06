@@ -21,8 +21,7 @@ resource "aws_cloudfront_distribution" "uploads_cdn" {
     allowed_methods = ["GET", "HEAD"]
     cached_methods  = ["GET", "HEAD"]
 
-    # 캐시 정책 default (명시 안함),
-    # 추후 CachePolicy/ResponseHeadersPolicy로 확장
+    cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id
   }
 
   restrictions {

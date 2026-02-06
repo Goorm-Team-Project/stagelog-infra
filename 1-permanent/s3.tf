@@ -73,7 +73,7 @@ data "aws_iam_policy_document" "uploads_cdn_read" {
         }
 
         actions = ["s3:GetObject"]
-        resources = ["${aws_s3_bucket.stagelog-dev-uploads-v2.arn}/uploads/*"]
+        resources = ["${aws_s3_bucket.stagelog_dev_uploads_v2.arn}/uploads/*"]
 
         condition {
             test = "StringEquals"
