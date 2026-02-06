@@ -1,14 +1,21 @@
+# cloudfront.tf
+
+# AWS Managed Cache Policy (필수: cache_policy_id 제공)
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
+}
+
 resource "aws_cloudfront_origin_access_control" "uploads_oac" {
   name                              = "stagelog-uploads-oac"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
-
-  tags = { Name = "stagelog-cloudfront-oac" }
 }
 
 resource "aws_cloudfront_distribution" "uploads_cdn" {
   enabled = true
+
+  tags = { Name = "stagelog-cloudfront-uploads" }
 
   origin {
     domain_name              = aws_s3_bucket.stagelog_dev_uploads_v2.bucket_regional_domain_name
