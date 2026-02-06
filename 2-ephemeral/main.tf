@@ -10,7 +10,7 @@ terraform {
 
   backend "s3" {
     bucket = "stagelog-tfstate"
-    key = "develop/ephemeral/terraform.tfstate"
+    key = "develop/dev-ephemeral/terraform.tfstate"
     region = "ap-northeast-2"
     encrypt = true
     dynamodb_table = "terraform-lock-table"
@@ -27,7 +27,13 @@ provider "aws" {
   }
 }
 
+variable "env"{
+  type = string
+  default = "dev"
+}
+
 locals {
+  prefix = "${var.env}"
   vpc_id = data.terraform_remote_state.permanent.outputs.vpc_id
 
   subnet_public_01 = data.terraform_remote_state.permanent.outputs.public_subnet_ids["public-01"]

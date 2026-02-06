@@ -4,7 +4,10 @@ resource "aws_iam_role" "SSM_CloudWatchlog_Role_Managed" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
+      Action = ["sts:AssumeRole",
+                "ssm:GetParameters",
+                "ssm:GetGetParametersByPath",
+      ]
       Effect = "Allow"
       Principal = { Service = "ec2.amazonaws.com" }
     }]
@@ -13,6 +16,7 @@ resource "aws_iam_role" "SSM_CloudWatchlog_Role_Managed" {
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
   ]
 }
 
@@ -32,6 +36,7 @@ resource "aws_iam_role" "Combine_SSM_CloudWatchlog_S3_Uploader_Managed" {
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
     "arn:aws:iam::aws:policy/CloudWatchFullAccess",
     "arn:aws:iam::430118823715:policy/stagelog-dev-s3-uploads-policy"
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
    ]
 }
 

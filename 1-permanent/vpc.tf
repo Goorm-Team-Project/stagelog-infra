@@ -34,7 +34,7 @@ resource "aws_subnet" "stagelog-subnet-public-03" {
 resource "aws_subnet" "stagelog-subnet-private-01" {
     vpc_id            = aws_vpc.stagelog-vpc.id
     cidr_block        = "10.1.3.0/24"
-    availability_zone = "ap-northeast-2c"
+    availability_zone = "ap-northeast-2a"
     tags = { Name = "stagelog-subnet-private-01"}
 }
 
@@ -42,7 +42,7 @@ resource "aws_subnet" "stagelog-subnet-private-01" {
 resource "aws_subnet" "stagelog-subnet-private-02" {
     vpc_id            = aws_vpc.stagelog-vpc.id
     cidr_block        = "10.1.4.0/24"
-    availability_zone = "ap-northeast-2d"
+    availability_zone = "ap-northeast-2c"
     tags = { Name = "stagelog-subnet-private-02"}
 }
 
