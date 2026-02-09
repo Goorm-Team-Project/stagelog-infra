@@ -4,10 +4,7 @@ resource "aws_iam_role" "SSM_CloudWatchlog_Role_Managed" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = ["sts:AssumeRole",
-                "ssm:GetParameters",
-                "ssm:GetGetParametersByPath",
-      ]
+      Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = { Service = "ec2.amazonaws.com" }
     }]
