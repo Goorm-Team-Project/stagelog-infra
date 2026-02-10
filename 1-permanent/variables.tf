@@ -31,5 +31,5 @@ variable "my_ip" {
 variable "uploads_cors_allowed_origins" {
   description = "Allowed origins for browser PUT to S3 (presigned upload)"
   type        = list(string)
-  default     = ["http://pearlinvest.click"] #localhost 접속 미허용
+  default     = ["https://pearlinvest.click"] #localhost 접속 미허용
 }
