@@ -135,9 +135,9 @@ resource "aws_launch_template" "frontend_lt" {
 
 resource "aws_autoscaling_group" "frontend_asg" {
   name             = "${local.prefix}-stagelog-frontend-asg"
-  desired_capacity = 2
-  max_size         = 2
-  min_size         = 2
+  desired_capacity = 1
+  max_size         = 1
+  min_size         = 1
 
   vpc_zone_identifier = [local.subnet_private_01]
 
