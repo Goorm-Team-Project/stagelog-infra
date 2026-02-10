@@ -2,9 +2,9 @@ resource "aws_launch_template" "backend_lt" {
   name_prefix   = "${local.prefix}-stagelog-backend-lt-"
   image_id      = "ami-0092e0c93f74c293a"
   instance_type = "t3.micro"
-  key_name = "my-cicd-rsa"
+  key_name      = "my-cicd-rsa"
 
-  
+
   vpc_security_group_ids = [local.backend_sg]
 
   iam_instance_profile {
@@ -62,15 +62,15 @@ resource "aws_launch_template" "backend_lt" {
 }
 
 resource "aws_autoscaling_group" "backende_asg" {
-  name                = "${local.prefix}-stagelog-backend-asg"
-  desired_capacity    = 2 
-  max_size            = 2 
-  min_size            = 2 
-  
+  name             = "${local.prefix}-stagelog-backend-asg"
+  desired_capacity = 2
+  max_size         = 2
+  min_size         = 2
+
   vpc_zone_identifier = [local.subnet_private_01]
 
   # 기존의 대상 그룹(Target Group)과 연결합니다.
-  target_group_arns   = [aws_lb_target_group.backend_tg.arn]
+  target_group_arns = [aws_lb_target_group.backend_tg.arn]
 
   launch_template {
     id      = aws_launch_template.backend_lt.id
@@ -86,9 +86,9 @@ resource "aws_launch_template" "frontend_lt" {
   name_prefix   = "${local.prefix}-stagelog-frontend-lt-"
   image_id      = "ami-0092e0c93f74c293a"
   instance_type = "t3.micro"
-  key_name = "my-cicd-rsa"
+  key_name      = "my-cicd-rsa"
 
-  
+
   vpc_security_group_ids = [local.frontend_sg]
 
   iam_instance_profile {
@@ -134,15 +134,15 @@ resource "aws_launch_template" "frontend_lt" {
 }
 
 resource "aws_autoscaling_group" "frontend_asg" {
-  name                = "${local.prefix}-stagelog-frontend-asg"
-  desired_capacity    = 2 
-  max_size            = 2 
-  min_size            = 2 
-  
+  name             = "${local.prefix}-stagelog-frontend-asg"
+  desired_capacity = 2
+  max_size         = 2
+  min_size         = 2
+
   vpc_zone_identifier = [local.subnet_private_01]
 
   # 기존의 대상 그룹(Target Group)과 연결합니다.
-  target_group_arns   = [aws_lb_target_group.frontend_tg.arn]
+  target_group_arns = [aws_lb_target_group.frontend_tg.arn]
 
   launch_template {
     id      = aws_launch_template.frontend_lt.id

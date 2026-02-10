@@ -34,7 +34,7 @@ resource "aws_iam_role" "Combine_SSM_CloudWatchlog_S3_Uploader_Managed" {
     "arn:aws:iam::aws:policy/CloudWatchFullAccess",
     "arn:aws:iam::430118823715:policy/stagelog-dev-s3-uploads-policy",
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
-   ]
+  ]
 }
 
 resource "aws_iam_role" "stagelog_rds_rambda_role_managed" {
