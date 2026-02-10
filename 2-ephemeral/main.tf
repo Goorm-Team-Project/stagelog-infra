@@ -9,20 +9,20 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "stagelog-tfstate"
-    key = "develop/ephemeral/terraform.tfstate"
-    region = "ap-northeast-2"
-    encrypt = true
+    bucket         = "stagelog-tfstate"
+    key            = "develop/ephemeral/terraform.tfstate"
+    region         = "ap-northeast-2"
+    encrypt        = true
     dynamodb_table = "terraform-lock-table"
   }
 }
 
 provider "aws" {
   region = "ap-northeast-2"
-  
+
   default_tags {
     tags = {
-    Project = "stagelog"
+      Project = "stagelog"
     }
   }
 }
@@ -40,15 +40,15 @@ locals {
   rtb_private_01 = data.terraform_remote_state.permanent.outputs.private_route_table_ids["private-rtb-01"]
   rtb_private_02 = data.terraform_remote_state.permanent.outputs.private_route_table_ids["private-rtb-02"]
 
-  alb_sg = data.terraform_remote_state.permanent.outputs.security_groups["alb_sg"]
+  alb_sg      = data.terraform_remote_state.permanent.outputs.security_groups["alb_sg"]
   frontend_sg = data.terraform_remote_state.permanent.outputs.security_groups["frontend_sg"]
-  backend_sg = data.terraform_remote_state.permanent.outputs.security_groups["backend_sg"]
-  bastion_sg = data.terraform_remote_state.permanent.outputs.security_groups["bastion_sg"]
+  backend_sg  = data.terraform_remote_state.permanent.outputs.security_groups["backend_sg"]
+  bastion_sg  = data.terraform_remote_state.permanent.outputs.security_groups["bastion_sg"]
 
-  iam_SSM_CloudWatchlog_Role = data.terraform_remote_state.permanent.outputs.iam_roles["SSM_CloudWatchlog_Role"]
+  iam_SSM_CloudWatchlog_Role                = data.terraform_remote_state.permanent.outputs.iam_roles["SSM_CloudWatchlog_Role"]
   iam_Combine_SSM_CloudWatchlog_S3_Uploader = data.terraform_remote_state.permanent.outputs.iam_roles["Combine_SSM_CloudWatchlog_S3_Uploader"]
 
-  backend_iam_role_profile = data.terraform_remote_state.permanent.outputs.iam_instance_backend_profile_name
+  backend_iam_role_profile  = data.terraform_remote_state.permanent.outputs.iam_instance_backend_profile_name
   frontend_iam_role_profile = data.terraform_remote_state.permanent.outputs.iam_frontend_profile_name
 }
 

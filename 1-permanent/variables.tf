@@ -1,7 +1,7 @@
 variable "db_password" {
-    description = "RDS master password"
-    type = string
-    sensitive = true
+  description = "RDS master password"
+  type        = string
+  sensitive   = true
 }
 
 ########################################
@@ -19,11 +19,17 @@ variable "key_name" {
 variable "my_ip" {
   description = "My public IP address for SSH access"
   type        = list(string)
-  default     = [
-        "58.120.222.88/32",  # 신희씨 IP
-        "118.216.139.140/32",  # 우성씨 IP
-        "180.66.77.93/32",  # 두용씨 IP
-        "58.120.222.88/32",  # 희수씨 IP
-        "116.121.59.73/32"   # 한용씨 IP
-    ]
+  default = [
+    "58.120.222.88/32",   # 신희씨 IP
+    "118.216.139.140/32", # 우성씨 IP
+    "180.66.77.93/32",    # 두용씨 IP
+    "58.120.222.88/32",   # 희수씨 IP
+    "116.121.59.73/32"    # 한용씨 IP
+  ]
+}
+
+variable "uploads_cors_allowed_origins" {
+  description = "Allowed origins for browser PUT to S3 (presigned upload)"
+  type        = list(string)
+  default     = ["http://pearlinvest.click"] #localhost 접속 미허용
 }

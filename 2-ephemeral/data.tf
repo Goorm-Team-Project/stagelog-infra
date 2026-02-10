@@ -3,7 +3,7 @@ data "terraform_remote_state" "permanent" {
 
   config = {
     bucket = "stagelog-tfstate"
-    key    = "develop/permanent/terraform.tfstate" 
+    key    = "develop/permanent/terraform.tfstate"
     region = "ap-northeast-2"
   }
 }

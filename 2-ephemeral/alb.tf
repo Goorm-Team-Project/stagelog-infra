@@ -1,25 +1,25 @@
 # ALB
 resource "aws_lb" "stagelog-dev-alb" {
-    name = "stagelog-dev-alb"
-    internal = false
-    load_balancer_type = "application"
-    security_groups = [local.alb_sg]
-    subnets = [local.subnet_public_01, local.subnet_public_02, local.subnet_public_03]
+  name               = "stagelog-dev-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [local.alb_sg]
+  subnets            = [local.subnet_public_01, local.subnet_public_02, local.subnet_public_03]
 
-    tags = { Name = "stagelog-alb" }  
+  tags = { Name = "stagelog-alb" }
 }
 
 resource "aws_lb_target_group" "frontend_tg" {
-    name = "stagelog-frontend-tg"
-    port = 80
-    protocol = "HTTP"
-    vpc_id = local.vpc_id
-    target_type = "instance"
-  
+  name        = "stagelog-frontend-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = local.vpc_id
+  target_type = "instance"
+
   health_check {
-    enabled = true
-    path = "/"
-    port = "traffic-port"
+    enabled             = true
+    path                = "/"
+    port                = "traffic-port"
     healthy_threshold   = 3
     unhealthy_threshold = 2
     timeout             = 5
@@ -39,7 +39,7 @@ resource "aws_lb_target_group" "backend_tg" {
     unhealthy_threshold = 2
     timeout             = 5
     interval            = 30
-    
+
   }
 }
 
@@ -48,7 +48,7 @@ resource "aws_lb_listener" "http" {
   port              = "80"
   protocol          = "HTTP"
 
- 
+
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.frontend_tg.arn
@@ -57,7 +57,7 @@ resource "aws_lb_listener" "http" {
 
 resource "aws_lb_listener_rule" "backend_rule" {
   listener_arn = aws_lb_listener.http.arn
-  priority     = 10 
+  priority     = 10
 
   action {
     type             = "forward"
@@ -66,7 +66,7 @@ resource "aws_lb_listener_rule" "backend_rule" {
 
   condition {
     path_pattern {
-      values = ["/api/*", "/admin/"] 
+      values = ["/api/*", "/admin/"]
     }
   }
 }
