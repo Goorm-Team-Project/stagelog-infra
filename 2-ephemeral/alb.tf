@@ -1,21 +1,20 @@
-# ALB
 resource "aws_lb" "stagelog-dev-alb" {
-  name               = "stagelog-dev-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [local.alb_sg]
-  subnets            = [local.subnet_public_01, local.subnet_public_02, local.subnet_public_03]
+    name = "stagelog-${local.prefix}-alb"
+    internal = false
+    load_balancer_type = "application"
+    security_groups = [local.alb_sg]
+    subnets = [local.subnet_public_01, local.subnet_public_02, local.subnet_public_03]
 
   tags = { Name = "stagelog-alb" }
 }
 
 resource "aws_lb_target_group" "frontend_tg" {
-  name        = "stagelog-frontend-tg"
-  port        = 80
-  protocol    = "HTTP"
-  vpc_id      = local.vpc_id
-  target_type = "instance"
-
+    name = "${local.prefix}-stagelog-frontend-tg"
+    port = 80
+    protocol = "HTTP"
+    vpc_id = local.vpc_id
+    target_type = "instance"
+  
   health_check {
     enabled             = true
     path                = "/"
@@ -28,7 +27,7 @@ resource "aws_lb_target_group" "frontend_tg" {
 }
 
 resource "aws_lb_target_group" "backend_tg" {
-  name     = "stagelog-backend-tg"
+  name     = "${local.prefix}-stagelog-backend-tg"
   port     = 80
   protocol = "HTTP"
   vpc_id   = local.vpc_id
@@ -69,16 +68,4 @@ resource "aws_lb_listener_rule" "backend_rule" {
       values = ["/api/*", "/admin/"]
     }
   }
-}
-
-resource "aws_lb_target_group_attachment" "frontend_attach" {
-  target_group_arn = aws_lb_target_group.frontend_tg.arn
-  target_id        = aws_instance.stagelog-frontend.id
-  port             = 80
-}
-
-resource "aws_lb_target_group_attachment" "backend_attach" {
-  target_group_arn = aws_lb_target_group.backend_tg.arn
-  target_id        = aws_instance.stagelog-backend.id
-  port             = 80
 }

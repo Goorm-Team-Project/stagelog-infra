@@ -27,7 +27,13 @@ provider "aws" {
   }
 }
 
+variable "env"{
+  type = string
+  default = "dev"
+}
+
 locals {
+  prefix = "${var.env}"
   vpc_id = data.terraform_remote_state.permanent.outputs.vpc_id
 
   subnet_public_01 = data.terraform_remote_state.permanent.outputs.public_subnet_ids["public-01"]
