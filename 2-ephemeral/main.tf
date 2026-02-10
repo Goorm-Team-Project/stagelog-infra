@@ -10,7 +10,7 @@ terraform {
 
   backend "s3" {
     bucket = "stagelog-tfstate"
-    key = "develop/dev-ephemeral/terraform.tfstate"
+    key = "develop/ephemeral/terraform.tfstate"
     region = "ap-northeast-2"
     encrypt = true
     dynamodb_table = "terraform-lock-table"
