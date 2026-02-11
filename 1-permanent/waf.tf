@@ -80,3 +80,119 @@ resource "aws_wafv2_web_acl" "uploads_cf_acl" {
     }
   }
 }
+
+
+# API 공격 대응 waf
+resource "aws_wafv2_web_acl" "api_waf" {
+  name        = "Global=API-WAF"
+  description = "WAF for API Brute-force protection"
+  scope       = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  # 무차별 공격 방어
+  rule {
+    name = "GlobalRateBaseRule"
+    priority = 1
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 500
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "GlobalRateBaseRule"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # 일반적인 공격
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 2
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesCommonRuleSet"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # SQL 인젝션 방어
+  rule {
+    name     = "AWSManagedRulesSQLiRuleSet"
+    priority = 3
+    
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesSQLiRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesSQLiRuleSet"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # 관리자 페이지 보호
+  rule {
+    name     = "AWSManagedRulesAdminProtectionRuleSet"
+    priority = 4
+    
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name = "AWSManagedRulesAdminProtectionRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name = "AWSManagedRulesAdminProtectionRuleSet"
+      sampled_requests_enabled = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "Global-API-WAF"
+    sampled_requests_enabled   = true
+  }
+}
+
+# ALB와 WAF 연결
+resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
+  resource_arn = data.terraform_remote_state.ephemeral.outputs.alb_arn
+  web_acl_arn  = aws_wafv2_web_acl.api_waf
+}
