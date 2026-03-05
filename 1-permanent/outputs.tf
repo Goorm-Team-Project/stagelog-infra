@@ -6,7 +6,6 @@ output "public_subnet_ids" {
   value = {
     public-01 = aws_subnet.stagelog-subnet-public-01.id
     public-02 = aws_subnet.stagelog-subnet-public-02.id
-    public-03 = aws_subnet.stagelog-subnet-public-03.id
   }
 }
 
@@ -31,21 +30,6 @@ output "security_groups" {
     "backend_sg"  = aws_security_group.backend-sg.id
     "bastion_sg"  = aws_security_group.bastion-sg.id
   }
-}
-
-output "iam_roles" {
-  value = {
-    "SSM_CloudWatchlog_Role"                = aws_iam_role.SSM_CloudWatchlog_Role_Managed.id
-    "Combine_SSM_CloudWatchlog_S3_Uploader" = aws_iam_role.Combine_SSM_CloudWatchlog_S3_Uploader_Managed.id
-  }
-}
-
-output "iam_instance_backend_profile_name" {
-  value = aws_iam_instance_profile.backend_profile.name
-}
-
-output "iam_frontend_profile_name" {
-  value = aws_iam_instance_profile.frontend_profile.name
 }
 
 output "rds_endpoint" {
