@@ -3,7 +3,7 @@ resource "aws_lb" "stagelog-dev-alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [local.alb_sg]
-  subnets            = [local.subnet_public_01, local.subnet_public_02, local.subnet_public_03]
+  subnets            = [local.subnet_public_01, local.subnet_public_02]
 
   tags = { Name = "stagelog-alb" }
 }
