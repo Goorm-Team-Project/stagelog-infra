@@ -4,31 +4,36 @@ output "vpc_id" {
 
 output "public_subnet_ids" {
   value = {
-    public-01 = aws_subnet.stagelog-subnet-public-01.id
-    public-02 = aws_subnet.stagelog-subnet-public-02.id
+    public-01 = aws_subnet.stagelog-subnet-public-2a.id
+    public-02 = aws_subnet.stagelog-subnet-public-2b.id
   }
 }
 
 output "private_subnet_ids" {
   value = {
-    private-01 = aws_subnet.stagelog-subnet-private-01.id
-    private-02 = aws_subnet.stagelog-subnet-private-02.id
+    private-01 = aws_subnet.stagelog-subnet-private-2a.id
+    private-02 = aws_subnet.stagelog-subnet-private-2b.id
   }
 }
 
 output "private_route_table_ids" {
   value = {
-    private-rtb-01 = aws_route_table.private-rtb-01.id
-    private-rtb-02 = aws_route_table.private-rtb-02.id
+    private-rtb-01 = aws_route_table.private-rtb-2a.id
+    private-rtb-02 = aws_route_table.private-rtb-2b.id
   }
 }
 
 output "security_groups" {
   value = {
     "alb_sg"      = aws_security_group.alb-sg.id
-    "frontend_sg" = aws_security_group.frontend-sg.id
-    "backend_sg"  = aws_security_group.backend-sg.id
     "bastion_sg"  = aws_security_group.bastion-sg.id
+  }
+}
+
+output "iam_roles" {
+  value = {
+    "EKS_Role" = aws_iam_role.stagelog_eks_role_managed.id
+    "EKS_node_group_Role" = aws_iam_role.stagelog_eks_node_group_role_managed.id
   }
 }
 
