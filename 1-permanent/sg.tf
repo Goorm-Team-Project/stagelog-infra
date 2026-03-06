@@ -19,7 +19,7 @@ resource "aws_security_group" "bastion-sg" {
   }
 }
 
-# 보안 그룹 (ALB)
+# 보안 그룹 (ALB) Ingress 
 resource "aws_security_group" "alb-sg" {
   name   = "stagelog-sg-alb"
   vpc_id = aws_vpc.stagelog-vpc.id
@@ -39,13 +39,6 @@ resource "aws_security_group" "alb-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port   = 8000
-    to_port     = 8000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
     from_port   = 0
     to_port     = 0
@@ -53,78 +46,6 @@ resource "aws_security_group" "alb-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
-# 보안 그룹 (Frontend-EC2)
-resource "aws_security_group" "frontend-sg" {
-  name   = "stagelog-sg-frontend"
-  vpc_id = aws_vpc.stagelog-vpc.id
-  tags   = { Name = "stagelog-sg-frontend" }
-
-  ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb-sg.id]
-  }
-
-  ingress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb-sg.id]
-  }
-
-  ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.bastion-sg.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# 보안 그룹 (Backend-EC2)
-resource "aws_security_group" "backend-sg" {
-  name   = "stagelog-sg-backend"
-  vpc_id = aws_vpc.stagelog-vpc.id
-  tags   = { Name = "stagelog-sg-backend" }
-
-  ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb-sg.id]
-  }
-
-  ingress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb-sg.id]
-  }
-
-  ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.bastion-sg.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-
 
 # 보안 그룹 (Lambda)
 resource "aws_security_group" "lambda-sg" {
