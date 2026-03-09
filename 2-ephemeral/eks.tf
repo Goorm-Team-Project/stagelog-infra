@@ -44,10 +44,10 @@ resource "aws_eks_addon" "stagelog_eks_kubeproxy" {
     resolve_conflicts_on_update  = "OVERWRITE"
 }
 
-# EKS 노드 그룹
-resource "aws_eks_node_group" "stagelog_nodes" {
+# EKS 노드 그룹(온디맨드)
+resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
     cluster_name = aws_eks_cluster.stagelog-eks.name
-    node_group_name = "stagelog-node-group"
+    node_group_name = "stagelog-node-group-on-demand"
     node_role_arn = local.eks_node_group_role
 
     subnet_ids = [
@@ -55,16 +55,47 @@ resource "aws_eks_node_group" "stagelog_nodes" {
         local.subnet_private_02,
     ]
 
-    instance_types = ["t3a.medium"] # t3a: AMD 기반 인스턴스
+    instance_types = ["t3.medium"] # EC2 인스턴스 유형
     capacity_type = "ON_DEMAND" # 온디맨드 인스턴스 사용
 
     scaling_config {
-        desired_size = 2
-        max_size     = 3
-        min_size     = 2
+        desired_size = 1
+        max_size     = 2
+        min_size     = 1
     }
 
     tags = {
         Name = "stagelog-node-group"
+        capacity_type = "ON_DEMAND"
     }
 }
+
+# EKS 노드 그룹(스팟)
+resource "aws_eks_node_group" "stagelog_nodes_spot" {
+    cluster_name = aws_eks_cluster.stagelog-eks.name
+    node_group_name = "stagelog-node-group-spot"
+    node_role_arn = local.eks_node_group_role
+
+    subnet_ids = [
+        local.subnet_private_01,
+        local.subnet_private_02,
+    ]
+
+    instance_types = ["t3.medium"] # EC2 인스턴스 유형
+    capacity_type = "SPOT" # 스팟 인스턴스 사용
+
+    scaling_config {
+        desired_size = 1
+        max_size     = 2
+        min_size     = 1
+    }
+
+    tags = {
+        Name = "stagelog-node-group"
+        capacity_type = "SPOT"
+    }
+}
+
+
+
+
