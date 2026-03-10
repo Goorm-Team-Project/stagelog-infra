@@ -1,9 +1,9 @@
 resource "aws_lb" "stagelog-dev-alb" {
   name               = "stagelog-${local.prefix}-alb"
-  internal           = false
+  internal           = true
   load_balancer_type = "application"
   security_groups    = [local.alb_sg]
-  subnets            = [local.subnet_public_01, local.subnet_public_02, local.subnet_public_03]
+  subnets            = [local.subnet_private_01, local.subnet_private_02]
 
   tags = { Name = "stagelog-alb" }
 }
@@ -65,7 +65,7 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.stagelog-dev-alb.arn
   port              = "443"
   protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2016-08" 
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
   certificate_arn   = "arn:aws:acm:ap-northeast-2:430118823715:certificate/5a984177-ce59-45c6-a959-b2ce8856e67f"
 
   default_action {

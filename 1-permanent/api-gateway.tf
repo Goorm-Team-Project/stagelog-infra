@@ -45,6 +45,13 @@ resource "aws_cloudwatch_log_group" "apigw_access_logs" {
 #------------------------------------------------------------
 # Integrations
 #------------------------------------------------------------
+# API Gateway -> private ALB 연결용 VPC Link
+resource "aws_apigatewayv2_vpc_link" "core_vpc_link" {
+  name               = "stagelog-core-vpc-link"
+  subnet_ids         = [aws_subnet.stagelog-subnet-private-01.id, aws_subnet.stagelog-subnet-private-02.id]
+  security_group_ids = [aws_security_group.lambda-sg.id]
+}
+
 # Auth Lambda (예: /home/woosupar/stagelog-auth 의 Lambda auth 핸들러)
 resource "aws_apigatewayv2_integration" "auth_integration" {
   api_id                 = aws_apigatewayv2_api.stagelog_http_api.id
@@ -55,13 +62,14 @@ resource "aws_apigatewayv2_integration" "auth_integration" {
 }
 
 # Core/API 통합 (ALB / EKS 서비스 오리진)
-# 예: http://<core-alb-dns>/api
+# private ALB HTTPS listener ARN 사용 (from ephemeral remote state)
 resource "aws_apigatewayv2_integration" "core_integration" {
   api_id                 = aws_apigatewayv2_api.stagelog_http_api.id
   integration_type       = "HTTP_PROXY"
   integration_method     = "ANY"
-  integration_uri        = var.core_api_url
-  connection_type        = "INTERNET"
+  integration_uri        = data.terraform_remote_state.ephemeral.outputs.alb_https_listener_arn
+  connection_type        = "VPC_LINK"
+  connection_id          = aws_apigatewayv2_vpc_link.core_vpc_link.id
   payload_format_version = "1.0"
 
   # HTTPS ALB/도메인을 쓰는 경우 verify 필수사항이면 주석 해제

@@ -17,8 +17,9 @@ variable "stage_name" {
 }
 
 variable "core_api_url" {
-  description = "Core service upstream URL (ex: https://<core-alb-dns>)"
+  description = "Deprecated. Replaced by remote-state listener ARN + VPC_LINK integration."
   type        = string
+  default     = ""
 }
 
 variable "core_api_host" {
