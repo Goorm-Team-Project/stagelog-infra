@@ -4,7 +4,9 @@ SSM Parameter Store only stack for `stagelog-backend-migration` runtime configur
 
 ## What this stack creates
 - String params for:
-  - `api`
+  - `core-api`
+  - `events-api`
+  - `auth-api`
   - `outbox-worker`
   - `notification-consumer`
 - SecureString params for secrets:
@@ -15,7 +17,7 @@ SSM Parameter Store only stack for `stagelog-backend-migration` runtime configur
 
 ## Path convention
 - `/<project>/<environment>/<service>/<KEY>`
-- Example: `/stagelog/dev/api/DB_HOST`
+- Example: `/stagelog/dev/core-api/DB_HOST`
 
 ## Apply
 ```bash

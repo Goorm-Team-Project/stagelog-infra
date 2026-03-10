@@ -8,9 +8,9 @@ Usage:
   sync_redis_host.sh clear [--project stagelog] [--env dev] [--region ap-northeast-2]
 
 Behavior:
-  - set:   Writes REDIS_HOST to SSM for api + notification-consumer.
+  - set:   Writes REDIS_HOST to SSM for core-api + notification-consumer.
            If --endpoint is omitted, tries terraform output from ../2-ephemeral.
-  - clear: Writes REDIS_HOST as empty string for api + notification-consumer.
+  - clear: Writes REDIS_HOST as empty string for core-api + notification-consumer.
 USAGE
 }
 
@@ -89,10 +89,10 @@ if [[ "$MODE" == "clear" ]]; then
   ENDPOINT=""
 fi
 
-PARAM_API="/${PROJECT}/${ENVIRONMENT}/api/REDIS_HOST"
+PARAM_CORE_API="/${PROJECT}/${ENVIRONMENT}/core-api/REDIS_HOST"
 PARAM_NOTI="/${PROJECT}/${ENVIRONMENT}/notification-consumer/REDIS_HOST"
 
-for p in "$PARAM_API" "$PARAM_NOTI"; do
+for p in "$PARAM_CORE_API" "$PARAM_NOTI"; do
   aws ssm put-parameter \
     --name "$p" \
     --type String \
