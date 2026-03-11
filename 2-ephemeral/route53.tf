@@ -11,8 +11,8 @@ resource "aws_route53_record" "root" {
   allow_overwrite = true
 
   alias {
-    name                   = aws_lb.stagelog-dev-alb.dns_name
-    zone_id                = aws_lb.stagelog-dev-alb.zone_id
+    name                   = local.cloudfront_distribution_id
+    zone_id                = local.cloudfront_distribution_hosted_zone_id
     evaluate_target_health = true
   }
 }
@@ -25,8 +25,8 @@ resource "aws_route53_record" "www" {
   allow_overwrite = true
 
   alias {
-    name                   = aws_lb.stagelog-dev-alb.dns_name
-    zone_id                = aws_lb.stagelog-dev-alb.zone_id
+    name                   = local.cloudfront_distribution_id
+    zone_id                = local.cloudfront_distribution_hosted_zone_id
     evaluate_target_health = true
   }
 }

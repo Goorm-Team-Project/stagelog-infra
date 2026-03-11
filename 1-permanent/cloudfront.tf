@@ -148,3 +148,11 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
   # WAF 설정
   web_acl_id = aws_wafv2_web_acl.api_waf.arn
 }
+
+output "cloudfront_distribution_domain_name" {
+  value = aws_cloudfront_distribution.stagelog_cdn.domain_name
+}
+
+output "cloudfront_distribution_hosted_zone_id" {
+  value = aws_cloudfront_distribution.stagelog_cdn.hosted_zone_id
+}
