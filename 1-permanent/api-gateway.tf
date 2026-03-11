@@ -61,9 +61,9 @@ resource "aws_apigatewayv2_integration" "auth_integration" {
   integration_method     = "POST"
 }
 
-# Core/API 통합 (ALB / EKS 서비스 오리진)
+# Core/API 공개 통합 (ALB / EKS 서비스 오리진)
 # private ALB HTTPS listener ARN 사용 (from ephemeral remote state)
-resource "aws_apigatewayv2_integration" "core_integration" {
+resource "aws_apigatewayv2_integration" "core_public_integration" {
   api_id                 = aws_apigatewayv2_api.stagelog_http_api.id
   integration_type       = "HTTP_PROXY"
   integration_method     = "ANY"
@@ -72,10 +72,32 @@ resource "aws_apigatewayv2_integration" "core_integration" {
   connection_id          = aws_apigatewayv2_vpc_link.core_vpc_link.id
   payload_format_version = "1.0"
 
+  # 공개 라우트에서 spoofed 헤더가 백엔드로 전달되지 않게 제거
+  request_parameters = {
+    "remove:header.X-User-Id" = "true"
+  }
+
   # HTTPS ALB/도메인을 쓰는 경우 verify 필수사항이면 주석 해제
   # tls_config {
   #   server_name_to_verify = var.core_api_host
   # }
+}
+
+# Core/API 보호 통합 (Authorizer context를 백엔드 헤더로 전달)
+resource "aws_apigatewayv2_integration" "core_protected_integration" {
+  api_id                 = aws_apigatewayv2_api.stagelog_http_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "ANY"
+  integration_uri        = data.terraform_remote_state.ephemeral.outputs.alb_https_listener_arn
+  connection_type        = "VPC_LINK"
+  connection_id          = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  payload_format_version = "1.0"
+
+  request_parameters = {
+    # 기존 헤더 제거 후 authorizer 결과를 강제로 주입
+    "remove:header.X-User-Id"    = "true"
+    "overwrite:header.X-User-Id" = "$context.authorizer.user_id"
+  }
 }
 
 # Authorizer 전용 Lambda (예: auth_service.handlers.authorizer)
@@ -112,44 +134,44 @@ resource "aws_apigatewayv2_route" "auth_keep" {
 resource "aws_apigatewayv2_route" "public_events_list" {
   api_id    = aws_apigatewayv2_api.stagelog_http_api.id
   route_key = "GET /api/events"
-  target    = "integrations/${aws_apigatewayv2_integration.core_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
 }
 
 resource "aws_apigatewayv2_route" "public_event_detail" {
   api_id    = aws_apigatewayv2_api.stagelog_http_api.id
   route_key = "GET /api/events/{event_id}"
-  target    = "integrations/${aws_apigatewayv2_integration.core_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
 }
 
 resource "aws_apigatewayv2_route" "public_event_posts_list" {
   api_id    = aws_apigatewayv2_api.stagelog_http_api.id
   route_key = "GET /api/events/{event_id}/posts"
-  target    = "integrations/${aws_apigatewayv2_integration.core_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
 }
 
 resource "aws_apigatewayv2_route" "public_posts_list" {
   api_id    = aws_apigatewayv2_api.stagelog_http_api.id
   route_key = "GET /api/posts"
-  target    = "integrations/${aws_apigatewayv2_integration.core_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
 }
 
 resource "aws_apigatewayv2_route" "public_post_detail" {
   api_id    = aws_apigatewayv2_api.stagelog_http_api.id
   route_key = "GET /api/posts/{post_id}"
-  target    = "integrations/${aws_apigatewayv2_integration.core_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
 }
 
 resource "aws_apigatewayv2_route" "public_post_comments_list" {
   api_id    = aws_apigatewayv2_api.stagelog_http_api.id
   route_key = "GET /api/posts/{post_id}/comments"
-  target    = "integrations/${aws_apigatewayv2_integration.core_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
 }
 
 # 보호 API 라우트 (기본) : 그 외 /api 경로는 Authorizer 적용
 resource "aws_apigatewayv2_route" "api_proxy" {
   api_id             = aws_apigatewayv2_api.stagelog_http_api.id
   route_key          = "ANY /api/{proxy+}"
-  target             = "integrations/${aws_apigatewayv2_integration.core_integration.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.core_protected_integration.id}"
   authorization_type = "CUSTOM"
   authorizer_id      = aws_apigatewayv2_authorizer.jwt_authorizer.id
 }
@@ -158,7 +180,7 @@ resource "aws_apigatewayv2_route" "api_proxy" {
 resource "aws_apigatewayv2_route" "health" {
   api_id    = aws_apigatewayv2_api.stagelog_http_api.id
   route_key = "GET /health"
-  target    = "integrations/${aws_apigatewayv2_integration.core_integration.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
 }
 
 #------------------------------------------------------------
