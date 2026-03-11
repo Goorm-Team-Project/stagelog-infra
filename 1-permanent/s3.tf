@@ -85,7 +85,7 @@ data "aws_iam_policy_document" "uploads_cdn_read" {
 
 # 1. 프론트엔드 S3 버킷
 resource "aws_s3_bucket" "stagelog_frontend" {
-  bucket = "stagelog-frontend-bucket" 
+  bucket = "stagelog-frontend-bucket"
 
   tags = {
     Name = "stagelog-frontend"
@@ -126,6 +126,51 @@ data "aws_iam_policy_document" "frontend_cdn_read" {
       test     = "StringEquals"
       variable = "AWS:SourceArn"
       values   = [aws_cloudfront_distribution.stagelog_cdn.arn]
+    }
+  }
+}
+# Auth Lambda artifact S3 bucket (CI zip upload target)
+data "aws_caller_identity" "current" {}
+
+resource "aws_s3_bucket" "auth_lambda_artifacts" {
+  bucket = "stagelog-auth-lambda-artifacts-${data.aws_caller_identity.current.account_id}"
+
+  tags = {
+    Name = "stagelog-auth-lambda-artifacts"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "auth_lambda_artifacts_block" {
+  bucket = aws_s3_bucket.auth_lambda_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "auth_lambda_artifacts_ownership" {
+  bucket = aws_s3_bucket.auth_lambda_artifacts.id
+
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "auth_lambda_artifacts_versioning" {
+  bucket = aws_s3_bucket.auth_lambda_artifacts.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "auth_lambda_artifacts_sse" {
+  bucket = aws_s3_bucket.auth_lambda_artifacts.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
     }
   }
 }

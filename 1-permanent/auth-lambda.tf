@@ -4,11 +4,6 @@
 # - CI uploads zip to S3
 # - Terraform deploys Lambda from S3 object key/version
 
-variable "auth_lambda_s3_bucket" {
-  description = "S3 bucket that stores auth lambda zip artifacts"
-  type        = string
-}
-
 variable "auth_lambda_s3_key" {
   description = "S3 object key for auth API lambda artifact"
   type        = string
@@ -273,7 +268,7 @@ resource "aws_lambda_function" "auth_api" {
   handler           = "app.lambda_handler"
   runtime           = var.auth_lambda_runtime
   architectures     = var.auth_lambda_architectures
-  s3_bucket         = var.auth_lambda_s3_bucket
+  s3_bucket         = aws_s3_bucket.auth_lambda_artifacts.bucket
   s3_key            = var.auth_lambda_s3_key
   s3_object_version = var.auth_lambda_s3_object_version
   timeout           = var.auth_lambda_timeout
@@ -303,7 +298,7 @@ resource "aws_lambda_function" "auth_authorizer" {
   handler           = "handlers.authorizer.lambda_handler"
   runtime           = var.auth_lambda_runtime
   architectures     = var.auth_lambda_architectures
-  s3_bucket         = var.auth_lambda_s3_bucket
+  s3_bucket         = aws_s3_bucket.auth_lambda_artifacts.bucket
   s3_key            = var.authorizer_lambda_s3_key
   s3_object_version = var.authorizer_lambda_s3_object_version
   timeout           = var.authorizer_lambda_timeout

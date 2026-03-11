@@ -25,14 +25,14 @@ output "private_route_table_ids" {
 
 output "security_groups" {
   value = {
-    "alb_sg"      = aws_security_group.alb-sg.id
-    "bastion_sg"  = aws_security_group.bastion-sg.id
+    "alb_sg"     = aws_security_group.alb-sg.id
+    "bastion_sg" = aws_security_group.bastion-sg.id
   }
 }
 
 output "iam_roles" {
   value = {
-    "EKS_Role" = aws_iam_role.stagelog_eks_role_managed.id
+    "EKS_Role"            = aws_iam_role.stagelog_eks_role_managed.id
     "EKS_node_group_Role" = aws_iam_role.stagelog_eks_node_group_role_managed.id
   }
 }
@@ -61,4 +61,8 @@ output "uploads_public_base_url" {
 
 output "uploads_bucket_name" {
   value = aws_s3_bucket.stagelog_dev_uploads_v2.bucket
+}
+output "auth_lambda_artifact_bucket_name" {
+  description = "S3 bucket name used for auth lambda artifacts"
+  value       = aws_s3_bucket.auth_lambda_artifacts.bucket
 }

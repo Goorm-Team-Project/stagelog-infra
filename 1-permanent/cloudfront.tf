@@ -81,8 +81,8 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
 
   # API Gateway 오리진
   origin {
-    domain_name              = replace(aws_apigatewayv2_api.stagelog_http_api.api_endpoint, "/^https?://([^/]*).*/", "$1") # API Gateway 도메인
-    origin_id                = "stagelog-api-gateway"
+    domain_name = replace(aws_apigatewayv2_api.stagelog_http_api.api_endpoint, "/^https?://([^/]*).*/", "$1") # API Gateway 도메인
+    origin_id   = "stagelog-api-gateway"
 
     custom_origin_config {
       http_port              = 80
@@ -94,21 +94,21 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
 
   # /api/* -> API Gateway
   ordered_cache_behavior {
-    path_pattern           = "/api/*"
-    target_origin_id       = "stagelog-api-gateway"
+    path_pattern     = "/api/*"
+    target_origin_id = "stagelog-api-gateway"
 
     allowed_methods = ["GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "DELETE"]
     cached_methods  = ["GET", "HEAD"]
 
     viewer_protocol_policy = "redirect-to-https"
 
-    cache_policy_id = data.aws_cloudfront_cache_policy.caching_disabled.id # API Gateway 캐시 정책
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id                       # API Gateway 캐시 정책
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id # API Gateway 오리진 요청 정책
   }
 
   # /* -> S3
   default_cache_behavior {
-    target_origin_id       = "stagelog-frontend-s3"
+    target_origin_id = "stagelog-frontend-s3"
 
     allowed_methods = ["GET", "HEAD", "OPTIONS"]
     cached_methods  = ["GET", "HEAD"]

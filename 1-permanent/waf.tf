@@ -94,7 +94,7 @@ resource "aws_wafv2_web_acl" "api_waf" {
 
   # 무차별 공격 방어
   rule {
-    name = "GlobalRateBaseRule"
+    name     = "GlobalRateBaseRule"
     priority = 1
 
     action {
@@ -142,7 +142,7 @@ resource "aws_wafv2_web_acl" "api_waf" {
   rule {
     name     = "AWSManagedRulesSQLiRuleSet"
     priority = 3
-    
+
     override_action {
       none {}
     }
@@ -165,22 +165,22 @@ resource "aws_wafv2_web_acl" "api_waf" {
   rule {
     name     = "AWSManagedRulesAdminProtectionRuleSet"
     priority = 4
-    
+
     override_action {
       none {}
     }
 
     statement {
       managed_rule_group_statement {
-        name = "AWSManagedRulesAdminProtectionRuleSet"
+        name        = "AWSManagedRulesAdminProtectionRuleSet"
         vendor_name = "AWS"
       }
     }
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name = "AWSManagedRulesAdminProtectionRuleSet"
-      sampled_requests_enabled = true
+      metric_name                = "AWSManagedRulesAdminProtectionRuleSet"
+      sampled_requests_enabled   = true
     }
   }
 

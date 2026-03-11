@@ -7,7 +7,6 @@
 - [ ] `AUTH_LAMBDA_ARTIFACT_BUCKET`
 
 ### stagelog-infra repo
-- [ ] `TF_VAR_auth_lambda_s3_bucket`
 - [ ] `TF_VAR_auth_lambda_s3_key`
 - [ ] `TF_VAR_authorizer_lambda_s3_key`
 - [ ] `TF_VAR_jwt_secret_key`
