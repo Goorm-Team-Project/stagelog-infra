@@ -141,6 +141,11 @@ variable "redis_host" {
   default = ""
 }
 
+variable "redis_port" {
+  type    = number
+  default = 6379
+}
+
 variable "redis_db" {
   type    = string
   default = "0"
