@@ -1,6 +1,6 @@
 resource "aws_db_subnet_group" "stagelog-db-subnet-group" {
   name       = "stagelog-subnet-group"
-  subnet_ids = [aws_subnet.stagelog-subnet-private-01.id, aws_subnet.stagelog-subnet-private-02.id]
+  subnet_ids = [aws_subnet.stagelog-subnet-private-db-2a.id, aws_subnet.stagelog-subnet-private-db-2c.id]
 
   tags = {
     Name = "stagelog-db-subnet-group"
