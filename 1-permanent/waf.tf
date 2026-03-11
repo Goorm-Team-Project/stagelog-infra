@@ -13,7 +13,7 @@ resource "aws_wafv2_web_acl" "uploads_cf_acl" {
     sampled_requests_enabled   = true
   }
 
-  # 최소 시작 세트: AWS Managed Rules
+  # 최소 시작 세트: AWS Managed Rules + S3 공격 대응
   rule {
     name     = "AWSManagedRulesCommonRuleSet"
     priority = 10
@@ -79,12 +79,34 @@ resource "aws_wafv2_web_acl" "uploads_cf_acl" {
       sampled_requests_enabled   = true
     }
   }
-}
+  # 추가(S3 공격 대응): Rate Limit 100회/5분 (기존 콘솔 설정 → IaC 코드화)
+  rule {
+    name     = "CfRateLimit100Per5Min"
+    priority = 1
 
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit                 = 100
+        aggregate_key_type    = "IP"
+        evaluation_window_sec = 300
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "CfRateLimit100Per5Min"
+      sampled_requests_enabled   = true
+    }
+  }
+}
 
 # API 공격 대응 waf
 resource "aws_wafv2_web_acl" "api_waf" {
-  name        = "Global=API-WAF"
+  name        = "Global-API-WAF"
   description = "WAF for API Brute-force protection"
   scope       = "REGIONAL"
 
@@ -94,7 +116,7 @@ resource "aws_wafv2_web_acl" "api_waf" {
 
   # 무차별 공격 방어
   rule {
-    name = "GlobalRateBaseRule"
+    name     = "GlobalRateBaseRule"
     priority = 1
 
     action {
@@ -118,7 +140,7 @@ resource "aws_wafv2_web_acl" "api_waf" {
   # 일반적인 공격
   rule {
     name     = "AWSManagedRulesCommonRuleSet"
-    priority = 2
+    priority = 10
 
     override_action {
       none {}
@@ -142,7 +164,7 @@ resource "aws_wafv2_web_acl" "api_waf" {
   rule {
     name     = "AWSManagedRulesSQLiRuleSet"
     priority = 3
-    
+
     override_action {
       none {}
     }
@@ -165,22 +187,22 @@ resource "aws_wafv2_web_acl" "api_waf" {
   rule {
     name     = "AWSManagedRulesAdminProtectionRuleSet"
     priority = 4
-    
+
     override_action {
       none {}
     }
 
     statement {
       managed_rule_group_statement {
-        name = "AWSManagedRulesAdminProtectionRuleSet"
+        name        = "AWSManagedRulesAdminProtectionRuleSet"
         vendor_name = "AWS"
       }
     }
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name = "AWSManagedRulesAdminProtectionRuleSet"
-      sampled_requests_enabled = true
+      metric_name                = "AWSManagedRulesAdminProtectionRuleSet"
+      sampled_requests_enabled   = true
     }
   }
 
@@ -194,5 +216,5 @@ resource "aws_wafv2_web_acl" "api_waf" {
 # ALB와 WAF 연결
 resource "aws_wafv2_web_acl_association" "api_waf_assoc" {
   resource_arn = data.terraform_remote_state.ephemeral.outputs.alb_arn
-  web_acl_arn  = aws_wafv2_web_acl.api_waf
+  web_acl_arn  = aws_wafv2_web_acl.api_waf.arn
 }
