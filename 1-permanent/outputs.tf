@@ -73,3 +73,25 @@ output "uploads_public_base_url" {
 output "uploads_bucket_name" {
   value = aws_s3_bucket.stagelog_dev_uploads_v2.bucket
 }
+
+# --- SQS / DLQ ---
+
+output "notifications_queue_url" {
+  description = "Main notifications SQS queue URL"
+  value       = aws_sqs_queue.notifications_queue.id
+}
+
+output "notifications_queue_arn" {
+  description = "Main notifications SQS queue ARN"
+  value       = aws_sqs_queue.notifications_queue.arn
+}
+
+output "notifications_dlq_url" {
+  description = "Notifications DLQ URL"
+  value       = aws_sqs_queue.notifications_dlq.id
+}
+
+output "notifications_dlq_arn" {
+  description = "Notifications DLQ ARN"
+  value       = aws_sqs_queue.notifications_dlq.arn
+}
