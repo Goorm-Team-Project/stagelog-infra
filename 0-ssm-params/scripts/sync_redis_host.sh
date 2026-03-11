@@ -4,13 +4,13 @@ set -euo pipefail
 usage() {
   cat <<USAGE
 Usage:
-  sync_redis_host.sh set   [--endpoint <redis-endpoint>] [--project stagelog] [--env dev] [--region ap-northeast-2]
-  sync_redis_host.sh clear [--project stagelog] [--env dev] [--region ap-northeast-2]
+  sync_redis_host.sh set   [--endpoint <redis-endpoint>] [--project stagelog] [--env dev] [--service migration] [--region ap-northeast-2]
+  sync_redis_host.sh clear [--project stagelog] [--env dev] [--service migration] [--region ap-northeast-2]
 
 Behavior:
-  - set:   Writes REDIS_HOST to SSM for core-api + notification-consumer.
+  - set:   Writes REDIS_HOST to SSM unified path.
            If --endpoint is omitted, tries terraform output from ../2-ephemeral.
-  - clear: Writes REDIS_HOST as empty string for core-api + notification-consumer.
+  - clear: Writes REDIS_HOST as empty string to SSM unified path.
 USAGE
 }
 
@@ -23,6 +23,7 @@ shift || true
 
 PROJECT="stagelog"
 ENVIRONMENT="dev"
+SERVICE_NAME="migration"
 REGION="ap-northeast-2"
 ENDPOINT=""
 
@@ -38,6 +39,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --env)
       ENVIRONMENT="${2:-}"
+      shift 2
+      ;;
+    --service)
+      SERVICE_NAME="${2:-}"
       shift 2
       ;;
     --region)
@@ -89,19 +94,17 @@ if [[ "$MODE" == "clear" ]]; then
   ENDPOINT=""
 fi
 
-PARAM_CORE_API="/${PROJECT}/${ENVIRONMENT}/core-api/REDIS_HOST"
-PARAM_NOTI="/${PROJECT}/${ENVIRONMENT}/notification-consumer/REDIS_HOST"
+PARAM_REDIS_HOST="/${PROJECT}/${ENVIRONMENT}/${SERVICE_NAME}/REDIS_HOST"
 
-for p in "$PARAM_CORE_API" "$PARAM_NOTI"; do
-  aws ssm put-parameter \
-    --name "$p" \
-    --type String \
-    --value "$ENDPOINT" \
-    --overwrite \
-    --region "$REGION" \
-    >/dev/null
-  echo "Updated $p"
-done
+aws ssm put-parameter \
+  --name "$PARAM_REDIS_HOST" \
+  --type String \
+  --value "$ENDPOINT" \
+  --overwrite \
+  --region "$REGION" \
+  >/dev/null
+
+echo "Updated $PARAM_REDIS_HOST"
 
 if [[ -n "$ENDPOINT" ]]; then
   echo "REDIS_HOST set to: $ENDPOINT"

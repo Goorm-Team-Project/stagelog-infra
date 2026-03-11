@@ -79,10 +79,11 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
     origin_access_control_id = aws_cloudfront_origin_access_control.stagelog_oac.id
   }
 
-  # API Gateway 오리진
+  # API Gateway 오리진 (core routes, REST API v1)
   origin {
-    domain_name = replace(aws_apigatewayv2_api.stagelog_http_api.api_endpoint, "/^https?://([^/]*).*/", "$1") # API Gateway 도메인
-    origin_id   = "stagelog-api-gateway"
+    domain_name = "${aws_api_gateway_rest_api.stagelog_core_rest_api.id}.execute-api.${var.aws_region}.amazonaws.com"
+    origin_id   = "stagelog-core-rest-api"
+    origin_path = "/${aws_api_gateway_stage.stagelog_core_rest_stage.stage_name}"
 
     custom_origin_config {
       http_port              = 80
@@ -92,10 +93,52 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
     }
   }
 
-  # /api/* -> API Gateway
+  # REST API 오리진 (auth routes)
+  origin {
+    domain_name = "${aws_api_gateway_rest_api.stagelog_auth_rest_api.id}.execute-api.${var.aws_region}.amazonaws.com"
+    origin_id   = "stagelog-auth-rest-api"
+    origin_path = "/${aws_api_gateway_stage.stagelog_auth_rest_stage.stage_name}"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  # /api/auth -> REST API (exact path)
+  ordered_cache_behavior {
+    path_pattern     = "/api/auth"
+    target_origin_id = "stagelog-auth-rest-api"
+
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "DELETE"]
+    cached_methods  = ["GET", "HEAD"]
+
+    viewer_protocol_policy = "redirect-to-https"
+
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+  }
+
+  # /api/auth/* -> REST API (monolith-like auth response contract)
+  ordered_cache_behavior {
+    path_pattern     = "/api/auth/*"
+    target_origin_id = "stagelog-auth-rest-api"
+
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "DELETE"]
+    cached_methods  = ["GET", "HEAD"]
+
+    viewer_protocol_policy = "redirect-to-https"
+
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+  }
+
+  # /api/* -> REST API (core routes)
   ordered_cache_behavior {
     path_pattern     = "/api/*"
-    target_origin_id = "stagelog-api-gateway"
+    target_origin_id = "stagelog-core-rest-api"
 
     allowed_methods = ["GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "DELETE"]
     cached_methods  = ["GET", "HEAD"]

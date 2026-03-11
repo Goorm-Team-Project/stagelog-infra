@@ -7,8 +7,8 @@ resource "aws_route53_record" "api_custom_domain_alias" {
   type    = "A"
 
   alias {
-    name                   = aws_apigatewayv2_domain_name.api_custom_domain.domain_name_configuration[0].target_domain_name
-    zone_id                = aws_apigatewayv2_domain_name.api_custom_domain.domain_name_configuration[0].hosted_zone_id
+    name                   = aws_api_gateway_domain_name.api_custom_domain.regional_domain_name
+    zone_id                = aws_api_gateway_domain_name.api_custom_domain.regional_zone_id
     evaluate_target_health = false
   }
 }

@@ -5,19 +5,19 @@ variable "aws_region" {
 }
 
 variable "api_name" {
-  description = "API Gateway HTTP API name"
+  description = "API Gateway REST API base name"
   type        = string
   default     = "stagelog-http-api"
 }
 
 variable "stage_name" {
-  description = "API Gateway stage name"
+  description = "Core REST API stage name"
   type        = string
-  default     = "$default"
+  default     = "prod"
 }
 
 variable "core_api_url" {
-  description = "Deprecated. Replaced by remote-state listener ARN + VPC_LINK integration."
+  description = "Fallback integration URI when ephemeral listener output is not available."
   type        = string
   default     = ""
 }
@@ -70,4 +70,10 @@ variable "route53_hosted_zone_id" {
     condition     = !var.create_route53_api_record || length(trimspace(var.route53_hosted_zone_id)) > 0
     error_message = "route53_hosted_zone_id is required when create_route53_api_record is true."
   }
+}
+
+variable "rest_auth_stage_name" {
+  description = "Stage name for REST API auth gateway"
+  type        = string
+  default     = "prod"
 }

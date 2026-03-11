@@ -1,39 +1,20 @@
-# API Gateway (HTTP API v2) - /api 라우트 계약의 1차 뼈대
-# - /api/auth/* : Auth Service(권한 검증 제외)
+# API Gateway (REST API v1) - core /api routes
 # - 공개 API GET /api/events*, /api/posts* : Authorizer 제외
 # - 보호 API: 그 외 /api/{proxy+} 는 Authorizer 적용
 
 #------------------------------------------------------------
-# API Gateway
+# Core REST API
 #------------------------------------------------------------
-resource "aws_apigatewayv2_api" "stagelog_http_api" {
-  name          = var.api_name
-  protocol_type = "HTTP"
+locals {
+  core_listener_arn_from_ephemeral = try(data.terraform_remote_state.ephemeral.outputs.alb_https_listener_arn, "")
+  core_api_integration_uri         = local.core_listener_arn_from_ephemeral != "" ? local.core_listener_arn_from_ephemeral : var.core_api_url
+}
 
-  cors_configuration {
-    allow_credentials = true
-    allow_headers = [
-      "Authorization",
-      "Content-Type",
-      "Origin",
-      "Accept",
-      "X-Requested-With",
-      "X-CSRF-Token"
-    ]
-    allow_methods = [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-      "OPTIONS"
-    ]
-    allow_origins = var.allowed_cors_origins
-    max_age       = 86400
-    expose_headers = [
-      "Location",
-      "X-Request-Id"
-    ]
+resource "aws_api_gateway_rest_api" "stagelog_core_rest_api" {
+  name = "${var.api_name}-core-rest"
+
+  endpoint_configuration {
+    types = ["REGIONAL"]
   }
 }
 
@@ -42,188 +23,376 @@ resource "aws_cloudwatch_log_group" "apigw_access_logs" {
   retention_in_days = var.log_retention_days
 }
 
-#------------------------------------------------------------
-# Integrations
-#------------------------------------------------------------
 # API Gateway -> private ALB 연결용 VPC Link
+# NOTE: REST API에서도 v2 VPC Link를 사용해 ALB listener ARN을 integration URI로 연결한다.
 resource "aws_apigatewayv2_vpc_link" "core_vpc_link" {
   name               = "stagelog-core-vpc-link"
   subnet_ids         = [aws_subnet.stagelog-subnet-private-2a.id, aws_subnet.stagelog-subnet-private-2c.id]
   security_group_ids = [aws_security_group.lambda-sg.id]
 }
 
-# Auth Lambda (예: /home/woosupar/stagelog-auth 의 Lambda auth 핸들러)
-resource "aws_apigatewayv2_integration" "auth_integration" {
-  api_id                 = aws_apigatewayv2_api.stagelog_http_api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.auth_api.invoke_arn
-  payload_format_version = "2.0"
-  integration_method     = "POST"
+#------------------------------------------------------------
+# Resources
+#------------------------------------------------------------
+resource "aws_api_gateway_resource" "core_api_root_api" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.root_resource_id
+  path_part   = "api"
 }
 
-# Core/API 공개 통합 (Ingress ALB / EKS 서비스 오리진)
-# ingress controller가 생성한 ALB의 HTTPS listener ARN 사용 (from ephemeral remote state)
-resource "aws_apigatewayv2_integration" "core_public_integration" {
-  api_id                 = aws_apigatewayv2_api.stagelog_http_api.id
-  integration_type       = "HTTP_PROXY"
-  integration_method     = "ANY"
-  integration_uri        = data.terraform_remote_state.ephemeral.outputs.alb_https_listener_arn
-  connection_type        = "VPC_LINK"
-  connection_id          = aws_apigatewayv2_vpc_link.core_vpc_link.id
-  payload_format_version = "1.0"
+resource "aws_api_gateway_resource" "core_api_proxy" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_root_api.id
+  path_part   = "{proxy+}"
+}
 
-  # 공개 라우트에서 spoofed 헤더가 백엔드로 전달되지 않게 제거
+resource "aws_api_gateway_resource" "core_api_events" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_root_api.id
+  path_part   = "events"
+}
+
+resource "aws_api_gateway_resource" "core_api_events_event_id" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_events.id
+  path_part   = "{event_id}"
+}
+
+resource "aws_api_gateway_resource" "core_api_events_event_posts" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_events_event_id.id
+  path_part   = "posts"
+}
+
+resource "aws_api_gateway_resource" "core_api_posts" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_root_api.id
+  path_part   = "posts"
+}
+
+resource "aws_api_gateway_resource" "core_api_posts_post_id" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_posts.id
+  path_part   = "{post_id}"
+}
+
+resource "aws_api_gateway_resource" "core_api_posts_post_comments" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_posts_post_id.id
+  path_part   = "comments"
+}
+
+resource "aws_api_gateway_resource" "core_health" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.root_resource_id
+  path_part   = "health"
+}
+
+#------------------------------------------------------------
+# Authorizer
+#------------------------------------------------------------
+resource "aws_api_gateway_authorizer" "core_jwt_authorizer" {
+  name           = "jwt-authorizer-core-rest"
+  rest_api_id    = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  type           = "REQUEST"
+  authorizer_uri = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${aws_lambda_function.auth_authorizer.arn}/invocations"
+
+  identity_source                  = "method.request.header.Authorization"
+  authorizer_result_ttl_in_seconds = 0
+}
+
+#------------------------------------------------------------
+# Methods
+#------------------------------------------------------------
+resource "aws_api_gateway_method" "core_public_events_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_events.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "core_public_event_detail_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_events_event_id.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "core_public_event_posts_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_events_event_posts.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "core_public_posts_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_posts.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "core_public_post_detail_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_posts_post_id.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "core_public_post_comments_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_posts_post_comments.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "core_health_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_health.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "core_api_proxy_any" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_proxy.id
+  http_method   = "ANY"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.core_jwt_authorizer.id
+
   request_parameters = {
-    "remove:header.X-User-Id" = "true"
+    "method.request.header.Authorization" = true
   }
-
-  # HTTPS ALB/도메인을 쓰는 경우 verify 필수사항이면 주석 해제
-  # tls_config {
-  #   server_name_to_verify = var.core_api_host
-  # }
 }
 
-# Core/API 보호 통합 (Authorizer context를 백엔드 헤더로 전달)
-resource "aws_apigatewayv2_integration" "core_protected_integration" {
-  api_id                 = aws_apigatewayv2_api.stagelog_http_api.id
-  integration_type       = "HTTP_PROXY"
-  integration_method     = "ANY"
-  integration_uri        = data.terraform_remote_state.ephemeral.outputs.alb_https_listener_arn
-  connection_type        = "VPC_LINK"
-  connection_id          = aws_apigatewayv2_vpc_link.core_vpc_link.id
-  payload_format_version = "1.0"
+#------------------------------------------------------------
+# Integrations
+#------------------------------------------------------------
+resource "aws_api_gateway_integration" "core_public_events_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_events.id
+  http_method             = aws_api_gateway_method.core_public_events_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = local.core_api_integration_uri
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+
+  # 공개 라우트에서 spoofed 헤더가 백엔드로 전달되지 않게 빈 값으로 덮어씀
+  request_parameters = {
+    "integration.request.header.X-User-Id" = "''"
+  }
+}
+
+resource "aws_api_gateway_integration" "core_public_event_detail_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_events_event_id.id
+  http_method             = aws_api_gateway_method.core_public_event_detail_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = local.core_api_integration_uri
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   request_parameters = {
-    # 기존 헤더 제거 후 authorizer 결과를 강제로 주입
-    "remove:header.X-User-Id"    = "true"
-    "overwrite:header.X-User-Id" = "$context.authorizer.user_id"
+    "integration.request.header.X-User-Id" = "''"
   }
 }
 
-# Authorizer 전용 Lambda (예: auth_service.handlers.authorizer)
-resource "aws_apigatewayv2_authorizer" "jwt_authorizer" {
-  api_id          = aws_apigatewayv2_api.stagelog_http_api.id
-  name            = "jwt-authorizer"
-  authorizer_type = "REQUEST"
+resource "aws_api_gateway_integration" "core_public_event_posts_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_events_event_posts.id
+  http_method             = aws_api_gateway_method.core_public_event_posts_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = local.core_api_integration_uri
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
-  authorizer_uri                    = aws_lambda_function.auth_authorizer.invoke_arn
-  authorizer_payload_format_version = "2.0"
-  identity_sources                  = ["$request.header.Authorization"]
-}
-
-#------------------------------------------------------------
-# Routes
-#------------------------------------------------------------
-# Auth 경로는 gateway에서 직접 auth 서비스로, 토큰 검증 예외
-resource "aws_apigatewayv2_route" "auth_proxy" {
-  api_id    = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key = "ANY /api/auth/{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.auth_integration.id}"
-}
-
-# 인증이 필요한 auth 하위 라우트(예: 로그인 유지)
-resource "aws_apigatewayv2_route" "auth_keep" {
-  api_id             = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key          = "GET /api/auth/keep"
-  target             = "integrations/${aws_apigatewayv2_integration.auth_integration.id}"
-  authorization_type = "CUSTOM"
-  authorizer_id      = aws_apigatewayv2_authorizer.jwt_authorizer.id
-}
-
-# 공개 GET 라우트(Authorizer 제외)
-resource "aws_apigatewayv2_route" "public_events_list" {
-  api_id    = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key = "GET /api/events"
-  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
-}
-
-resource "aws_apigatewayv2_route" "public_event_detail" {
-  api_id    = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key = "GET /api/events/{event_id}"
-  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
-}
-
-resource "aws_apigatewayv2_route" "public_event_posts_list" {
-  api_id    = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key = "GET /api/events/{event_id}/posts"
-  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
-}
-
-resource "aws_apigatewayv2_route" "public_posts_list" {
-  api_id    = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key = "GET /api/posts"
-  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
-}
-
-resource "aws_apigatewayv2_route" "public_post_detail" {
-  api_id    = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key = "GET /api/posts/{post_id}"
-  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
-}
-
-resource "aws_apigatewayv2_route" "public_post_comments_list" {
-  api_id    = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key = "GET /api/posts/{post_id}/comments"
-  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
-}
-
-# 보호 API 라우트 (기본) : 그 외 /api 경로는 Authorizer 적용
-resource "aws_apigatewayv2_route" "api_proxy" {
-  api_id             = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key          = "ANY /api/{proxy+}"
-  target             = "integrations/${aws_apigatewayv2_integration.core_protected_integration.id}"
-  authorization_type = "CUSTOM"
-  authorizer_id      = aws_apigatewayv2_authorizer.jwt_authorizer.id
-}
-
-# health용 테스트 경로 (필요 시 제거 가능)
-resource "aws_apigatewayv2_route" "health" {
-  api_id    = aws_apigatewayv2_api.stagelog_http_api.id
-  route_key = "GET /health"
-  target    = "integrations/${aws_apigatewayv2_integration.core_public_integration.id}"
-}
-
-#------------------------------------------------------------
-# Permissions (API Gateway -> Lambda invoke)
-#------------------------------------------------------------
-resource "aws_lambda_permission" "allow_apigw_auth" {
-  statement_id  = "AllowExecutionFromApiGatewayAuth"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.auth_api.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.stagelog_http_api.execution_arn}/*/*"
-}
-
-resource "aws_lambda_permission" "allow_apigw_authorizer" {
-  statement_id  = "AllowExecutionFromApiGatewayAuthorizer"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.auth_authorizer.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.stagelog_http_api.execution_arn}/*/*"
-}
-
-#------------------------------------------------------------
-# Auto deploy Stage
-#------------------------------------------------------------
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.stagelog_http_api.id
-  name        = var.stage_name
-  auto_deploy = true
-
-  default_route_settings {
-    data_trace_enabled     = true
-    logging_level          = "INFO"
-    throttling_burst_limit = 1000
-    throttling_rate_limit  = 1000
+  request_parameters = {
+    "integration.request.header.X-User-Id" = "''"
   }
+}
+
+resource "aws_api_gateway_integration" "core_public_posts_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_posts.id
+  http_method             = aws_api_gateway_method.core_public_posts_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = local.core_api_integration_uri
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+
+  request_parameters = {
+    "integration.request.header.X-User-Id" = "''"
+  }
+}
+
+resource "aws_api_gateway_integration" "core_public_post_detail_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_posts_post_id.id
+  http_method             = aws_api_gateway_method.core_public_post_detail_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = local.core_api_integration_uri
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+
+  request_parameters = {
+    "integration.request.header.X-User-Id" = "''"
+  }
+}
+
+resource "aws_api_gateway_integration" "core_public_post_comments_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_posts_post_comments.id
+  http_method             = aws_api_gateway_method.core_public_post_comments_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = local.core_api_integration_uri
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+
+  request_parameters = {
+    "integration.request.header.X-User-Id" = "''"
+  }
+}
+
+resource "aws_api_gateway_integration" "core_health_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_health.id
+  http_method             = aws_api_gateway_method.core_health_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  uri                     = local.core_api_integration_uri
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+
+  request_parameters = {
+    "integration.request.header.X-User-Id" = "''"
+  }
+}
+
+resource "aws_api_gateway_integration" "core_protected_proxy_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_proxy.id
+  http_method             = aws_api_gateway_method.core_api_proxy_any.http_method
+  integration_http_method = "ANY"
+  type                    = "HTTP_PROXY"
+  uri                     = local.core_api_integration_uri
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+
+  request_parameters = {
+    "integration.request.header.X-User-Id" = "context.authorizer.user_id"
+  }
+}
+
+#------------------------------------------------------------
+# Gateway Responses (common_response envelope)
+#------------------------------------------------------------
+resource "aws_api_gateway_gateway_response" "core_unauthorized" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  response_type = "UNAUTHORIZED"
+  status_code   = "401"
+
+  response_parameters = {
+    "gatewayresponse.header.Content-Type"                 = "'application/json'"
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'${var.allowed_cors_origins[0]}'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Authorization,Content-Type,Origin,Accept,X-Requested-With,X-CSRF-Token'"
+    "gatewayresponse.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
+  }
+
+  response_templates = {
+    "application/json" = jsonencode({
+      success = false
+      message = "유효하지 않거나 만료된 토큰입니다."
+      data    = null
+    })
+  }
+}
+
+resource "aws_api_gateway_gateway_response" "core_access_denied" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  response_type = "ACCESS_DENIED"
+  status_code   = "403"
+
+  response_parameters = {
+    "gatewayresponse.header.Content-Type"                 = "'application/json'"
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'${var.allowed_cors_origins[0]}'"
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Authorization,Content-Type,Origin,Accept,X-Requested-With,X-CSRF-Token'"
+    "gatewayresponse.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
+  }
+
+  response_templates = {
+    "application/json" = jsonencode({
+      success = false
+      message = "권한이 없습니다."
+      data    = null
+    })
+  }
+}
+
+#------------------------------------------------------------
+# Deployment & Stage
+#------------------------------------------------------------
+resource "aws_api_gateway_deployment" "stagelog_core_rest_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_method.core_public_events_get.id,
+      aws_api_gateway_method.core_public_event_detail_get.id,
+      aws_api_gateway_method.core_public_event_posts_get.id,
+      aws_api_gateway_method.core_public_posts_get.id,
+      aws_api_gateway_method.core_public_post_detail_get.id,
+      aws_api_gateway_method.core_public_post_comments_get.id,
+      aws_api_gateway_method.core_health_get.id,
+      aws_api_gateway_method.core_api_proxy_any.id,
+      aws_api_gateway_integration.core_public_events_integration.id,
+      aws_api_gateway_integration.core_public_event_detail_integration.id,
+      aws_api_gateway_integration.core_public_event_posts_integration.id,
+      aws_api_gateway_integration.core_public_posts_integration.id,
+      aws_api_gateway_integration.core_public_post_detail_integration.id,
+      aws_api_gateway_integration.core_public_post_comments_integration.id,
+      aws_api_gateway_integration.core_health_integration.id,
+      aws_api_gateway_integration.core_protected_proxy_integration.id,
+      aws_api_gateway_gateway_response.core_unauthorized.id,
+      aws_api_gateway_gateway_response.core_access_denied.id,
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.core_public_events_integration,
+    aws_api_gateway_integration.core_public_event_detail_integration,
+    aws_api_gateway_integration.core_public_event_posts_integration,
+    aws_api_gateway_integration.core_public_posts_integration,
+    aws_api_gateway_integration.core_public_post_detail_integration,
+    aws_api_gateway_integration.core_public_post_comments_integration,
+    aws_api_gateway_integration.core_health_integration,
+    aws_api_gateway_integration.core_protected_proxy_integration,
+    aws_api_gateway_gateway_response.core_unauthorized,
+    aws_api_gateway_gateway_response.core_access_denied,
+  ]
+}
+
+resource "aws_api_gateway_stage" "stagelog_core_rest_stage" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  stage_name    = var.stage_name
+  deployment_id = aws_api_gateway_deployment.stagelog_core_rest_deployment.id
 
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.apigw_access_logs.arn
     format = jsonencode({
       requestId          = "$context.requestId"
       ip                 = "$context.identity.sourceIp"
-      method             = "$context.http.method"
-      path               = "$context.http.path"
+      method             = "$context.httpMethod"
+      path               = "$context.path"
       protocol           = "$context.protocol"
       status             = "$context.status"
       responseLength     = "$context.responseLength"
@@ -235,27 +404,41 @@ resource "aws_apigatewayv2_stage" "default" {
   }
 }
 
-resource "aws_apigatewayv2_domain_name" "api_custom_domain" {
-  domain_name = var.api_domain_name
+#------------------------------------------------------------
+# Permissions (API Gateway -> Lambda invoke)
+#------------------------------------------------------------
+resource "aws_lambda_permission" "allow_apigw_rest_core_authorizer" {
+  statement_id  = "AllowExecutionFromRestApiGatewayCoreAuthorizer"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.auth_authorizer.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.stagelog_core_rest_api.execution_arn}/*/*"
+}
 
-  domain_name_configuration {
-    certificate_arn = var.api_domain_certificate_arn
-    endpoint_type   = "REGIONAL"
-    security_policy = "TLS_1_2"
+#------------------------------------------------------------
+# REST API Custom Domain
+#------------------------------------------------------------
+resource "aws_api_gateway_domain_name" "api_custom_domain" {
+  domain_name              = var.api_domain_name
+  regional_certificate_arn = var.api_domain_certificate_arn
+  security_policy          = "TLS_1_2"
+
+  endpoint_configuration {
+    types = ["REGIONAL"]
   }
 }
 
-resource "aws_apigatewayv2_api_mapping" "api_domain_mapping" {
-  api_id      = aws_apigatewayv2_api.stagelog_http_api.id
-  domain_name = aws_apigatewayv2_domain_name.api_custom_domain.id
-  stage       = aws_apigatewayv2_stage.default.name
+resource "aws_api_gateway_base_path_mapping" "api_domain_mapping" {
+  api_id      = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  stage_name  = aws_api_gateway_stage.stagelog_core_rest_stage.stage_name
+  domain_name = aws_api_gateway_domain_name.api_custom_domain.domain_name
 }
 
 #------------------------------------------------------------
 # Outputs
 #------------------------------------------------------------
 output "api_invoke_url" {
-  value = aws_apigatewayv2_api.stagelog_http_api.api_endpoint
+  value = aws_api_gateway_stage.stagelog_core_rest_stage.invoke_url
 }
 
 output "api_custom_domain_url" {
