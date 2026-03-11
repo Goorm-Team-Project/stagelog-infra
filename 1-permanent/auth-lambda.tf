@@ -276,8 +276,8 @@ resource "aws_lambda_function" "auth_api" {
 
   vpc_config {
     subnet_ids = [
-      aws_subnet.stagelog-subnet-private-01.id,
-      aws_subnet.stagelog-subnet-private-02.id,
+      aws_subnet.stagelog-subnet-private-2a.id,
+      aws_subnet.stagelog-subnet-private-2c.id,
     ]
     security_group_ids = [aws_security_group.lambda-sg.id]
   }
@@ -306,8 +306,8 @@ resource "aws_lambda_function" "auth_authorizer" {
 
   vpc_config {
     subnet_ids = [
-      aws_subnet.stagelog-subnet-private-01.id,
-      aws_subnet.stagelog-subnet-private-02.id,
+      aws_subnet.stagelog-subnet-private-2a.id,
+      aws_subnet.stagelog-subnet-private-2c.id,
     ]
     security_group_ids = [aws_security_group.lambda-sg.id]
   }

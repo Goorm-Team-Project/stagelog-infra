@@ -90,13 +90,13 @@ resource "aws_security_group" "rds-sg" {
     description     = "connect bastion-ec2 with rds"
   }
 
-  ingress {
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    security_groups = [aws_security_group.backend-sg.id]
-    description     = "backend-api"
-  }
+  # ingress {
+  #   from_port       = 3306
+  #   to_port         = 3306
+  #   protocol        = "tcp"
+  #   security_groups = [aws_security_group.backend-sg.id]
+  #   description     = "backend-api"
+  # }
 
   ingress {
     from_port       = 3306

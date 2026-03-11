@@ -48,7 +48,7 @@ resource "aws_cloudwatch_log_group" "apigw_access_logs" {
 # API Gateway -> private ALB 연결용 VPC Link
 resource "aws_apigatewayv2_vpc_link" "core_vpc_link" {
   name               = "stagelog-core-vpc-link"
-  subnet_ids         = [aws_subnet.stagelog-subnet-private-01.id, aws_subnet.stagelog-subnet-private-02.id]
+  subnet_ids         = [aws_subnet.stagelog-subnet-private-2a.id, aws_subnet.stagelog-subnet-private-2c.id]
   security_group_ids = [aws_security_group.lambda-sg.id]
 }
 

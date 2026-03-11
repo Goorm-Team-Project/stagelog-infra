@@ -5,21 +5,21 @@ output "vpc_id" {
 output "public_subnet_ids" {
   value = {
     public-01 = aws_subnet.stagelog-subnet-public-2a.id
-    public-02 = aws_subnet.stagelog-subnet-public-2b.id
+    public-02 = aws_subnet.stagelog-subnet-public-2c.id
   }
 }
 
 output "private_subnet_ids" {
   value = {
     private-01 = aws_subnet.stagelog-subnet-private-2a.id
-    private-02 = aws_subnet.stagelog-subnet-private-2b.id
+    private-02 = aws_subnet.stagelog-subnet-private-2c.id
   }
 }
 
 output "private_route_table_ids" {
   value = {
     private-rtb-01 = aws_route_table.private-rtb-2a.id
-    private-rtb-02 = aws_route_table.private-rtb-2b.id
+    private-rtb-02 = aws_route_table.private-rtb-2c.id
   }
 }
 

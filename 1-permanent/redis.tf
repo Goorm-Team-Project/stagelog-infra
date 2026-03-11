@@ -35,13 +35,13 @@ resource "aws_security_group" "redis_sg" {
     Name = "stagelog-sg-redis"
   }
 
-  ingress {
-    from_port       = var.redis_port
-    to_port         = var.redis_port
-    protocol        = "tcp"
-    security_groups = [aws_security_group.backend-sg.id]
-    description     = "backend to redis"
-  }
+  # ingress {
+  #   from_port       = var.redis_port
+  #   to_port         = var.redis_port
+  #   protocol        = "tcp"
+  #   security_groups = [aws_security_group.backend-sg.id]
+  #   description     = "backend to redis"
+  # }
 
   ingress {
     from_port       = var.redis_port
@@ -62,8 +62,8 @@ resource "aws_security_group" "redis_sg" {
 resource "aws_elasticache_subnet_group" "stagelog_redis_subnet_group" {
   name = "stagelog-redis-subnet-group"
   subnet_ids = [
-    aws_subnet.stagelog-subnet-private-01.id,
-    aws_subnet.stagelog-subnet-private-02.id,
+    aws_subnet.stagelog-subnet-private-2a.id,
+    aws_subnet.stagelog-subnet-private-2c.id,
   ]
 
   tags = {

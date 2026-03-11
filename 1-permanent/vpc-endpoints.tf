@@ -11,7 +11,7 @@ resource "aws_security_group" "vpce_sg" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [aws_subnet.stagelog-subnet-private-01.cidr_block]
+    cidr_blocks = [aws_subnet.stagelog-subnet-private-2a.cidr_block]
   }
 
   ingress {
@@ -19,7 +19,7 @@ resource "aws_security_group" "vpce_sg" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = [aws_subnet.stagelog-subnet-private-02.cidr_block]
+    cidr_blocks = [aws_subnet.stagelog-subnet-private-2c.cidr_block]
   }
 
   egress {
@@ -40,8 +40,8 @@ resource "aws_vpc_endpoint" "s3_gateway" {
   service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
   vpc_endpoint_type = "Gateway"
   route_table_ids = [
-    aws_route_table.private-rtb-01.id,
-    aws_route_table.private-rtb-02.id
+    aws_route_table.private-rtb-2a.id,
+    aws_route_table.private-rtb-2c.id
   ]
 
   tags = {
@@ -55,8 +55,8 @@ resource "aws_vpc_endpoint" "dynamodb_gateway" {
   service_name      = "com.amazonaws.${data.aws_region.current.name}.dynamodb"
   vpc_endpoint_type = "Gateway"
   route_table_ids = [
-    aws_route_table.private-rtb-01.id,
-    aws_route_table.private-rtb-02.id
+    aws_route_table.private-rtb-2a.id,
+    aws_route_table.private-rtb-2c.id
   ]
 
   tags = {
@@ -71,8 +71,8 @@ resource "aws_vpc_endpoint" "sqs_interface" {
   vpc_endpoint_type   = "Interface"
   private_dns_enabled = true
   subnet_ids = [
-    aws_subnet.stagelog-subnet-private-01.id,
-    aws_subnet.stagelog-subnet-private-02.id
+    aws_subnet.stagelog-subnet-private-2a.id,
+    aws_subnet.stagelog-subnet-private-2c.id
   ]
   security_group_ids = [aws_security_group.vpce_sg.id]
 
@@ -88,8 +88,8 @@ resource "aws_vpc_endpoint" "events_interface" {
   vpc_endpoint_type   = "Interface"
   private_dns_enabled = true
   subnet_ids = [
-    aws_subnet.stagelog-subnet-private-01.id,
-    aws_subnet.stagelog-subnet-private-02.id
+    aws_subnet.stagelog-subnet-private-2a.id,
+    aws_subnet.stagelog-subnet-private-2c.id
   ]
   security_group_ids = [aws_security_group.vpce_sg.id]
 
@@ -105,8 +105,8 @@ resource "aws_vpc_endpoint" "logs_interface" {
   vpc_endpoint_type   = "Interface"
   private_dns_enabled = true
   subnet_ids = [
-    aws_subnet.stagelog-subnet-private-01.id,
-    aws_subnet.stagelog-subnet-private-02.id
+    aws_subnet.stagelog-subnet-private-2a.id,
+    aws_subnet.stagelog-subnet-private-2c.id
   ]
   security_group_ids = [aws_security_group.vpce_sg.id]
 
@@ -122,8 +122,8 @@ resource "aws_vpc_endpoint" "ecr_api_interface" {
   vpc_endpoint_type   = "Interface"
   private_dns_enabled = true
   subnet_ids = [
-    aws_subnet.stagelog-subnet-private-01.id,
-    aws_subnet.stagelog-subnet-private-02.id
+    aws_subnet.stagelog-subnet-private-2a.id,
+    aws_subnet.stagelog-subnet-private-2c.id
   ]
   security_group_ids = [aws_security_group.vpce_sg.id]
 
@@ -139,8 +139,8 @@ resource "aws_vpc_endpoint" "ecr_dkr_interface" {
   vpc_endpoint_type   = "Interface"
   private_dns_enabled = true
   subnet_ids = [
-    aws_subnet.stagelog-subnet-private-01.id,
-    aws_subnet.stagelog-subnet-private-02.id
+    aws_subnet.stagelog-subnet-private-2a.id,
+    aws_subnet.stagelog-subnet-private-2c.id
   ]
   security_group_ids = [aws_security_group.vpce_sg.id]
 
