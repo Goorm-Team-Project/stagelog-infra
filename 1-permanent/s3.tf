@@ -82,3 +82,50 @@ data "aws_iam_policy_document" "uploads_cdn_read" {
     }
   }
 }
+
+# 1. 프론트엔드 S3 버킷
+resource "aws_s3_bucket" "stagelog_frontend" {
+  bucket = "stagelog-frontend-bucket" 
+
+  tags = {
+    Name = "stagelog-frontend"
+  }
+}
+
+# 2. S3 퍼블릭 액세스 차단 (보안 필수)
+resource "aws_s3_bucket_public_access_block" "frontend_all_block" {
+  bucket = aws_s3_bucket.stagelog_frontend.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# 3. 정책 연결
+resource "aws_s3_bucket_policy" "frontend_bucket_policy" {
+  bucket = aws_s3_bucket.stagelog_frontend.id
+  policy = data.aws_iam_policy_document.frontend_cdn_read.json
+}
+
+# 4. 프론트엔드 S3용 정책 (전체 객체 읽기)
+data "aws_iam_policy_document" "frontend_cdn_read" {
+  statement {
+    sid    = "AllowCloudFrontOACRead"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.stagelog_frontend.arn}/*"] # 모든 정적 파일
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.stagelog_cdn.arn]
+    }
+  }
+}
