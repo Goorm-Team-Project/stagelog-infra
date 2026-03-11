@@ -61,8 +61,8 @@ resource "aws_apigatewayv2_integration" "auth_integration" {
   integration_method     = "POST"
 }
 
-# Core/API 공개 통합 (ALB / EKS 서비스 오리진)
-# private ALB HTTPS listener ARN 사용 (from ephemeral remote state)
+# Core/API 공개 통합 (Ingress ALB / EKS 서비스 오리진)
+# ingress controller가 생성한 ALB의 HTTPS listener ARN 사용 (from ephemeral remote state)
 resource "aws_apigatewayv2_integration" "core_public_integration" {
   api_id                 = aws_apigatewayv2_api.stagelog_http_api.id
   integration_type       = "HTTP_PROXY"

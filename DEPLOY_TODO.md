@@ -28,6 +28,7 @@
 - [ ] `TF_VAR_naver_redirect_uri`
 - [ ] `TF_VAR_api_domain_certificate_arn`
 - [ ] `TF_VAR_core_api_url`
+- [ ] `TF_VAR_ingress_alb_https_listener_arn` (or `TF_VAR_ingress_alb_arn`)
 
 ## 2) Auth CI 워크플로 활성화
 
