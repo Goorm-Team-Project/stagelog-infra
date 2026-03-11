@@ -56,3 +56,52 @@ resource "aws_iam_role" "stagelog_eks_node_group_role_managed" {
     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
   ]
 }
+
+# SSM Parameter Store를 읽을 수 있는 "권한 내용(Policy)"
+resource "aws_iam_policy" "external_secrets" {
+  name        = "StagelogExternalSecretsPolicy"
+  description = "Allow ESO to read parameters from SSM Parameter Store"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
+        ]
+        Effect   = "Allow"
+        Resource = "*" # 보안을 위해 나중에는 특정 경로(예: arn:aws:ssm:ap-northeast-2:*:parameter/dev/*)로 제한
+      }
+    ]
+  })
+}
+
+# SSM 역할
+resource "aws_iam_role" "external_secrets" {
+  name = "stagelog-eso-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRoleWithWebIdentity" 
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks.arn
+        }
+        Condition = {
+          StringEquals = {
+            "${replace(aws_iam_openid_connect_provider.eks.url, "https://", "")}:sub" : "system:serviceaccount:external-secrets:external-secrets"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "external_secrets_attach" {
+  role       = aws_iam_role.external_secrets.name 
+  policy_arn = aws_iam_policy.external_secrets.arn 
+}

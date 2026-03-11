@@ -97,5 +97,17 @@ resource "aws_eks_node_group" "stagelog_nodes_spot" {
 }
 
 
+# EKS 클러스터의 인증서(TLS) 정보 참조
+data "aws_partition" "current" {}
 
+data "tls_certificate" "eks" {
+  url = aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer
+}
+
+# OIDC생성
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer
+}
 
