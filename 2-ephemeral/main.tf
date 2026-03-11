@@ -48,7 +48,7 @@ locals {
   alb_sg      = data.terraform_remote_state.permanent.outputs.security_groups["alb_sg"]
   bastion_sg  = data.terraform_remote_state.permanent.outputs.security_groups["bastion_sg"]
 
-  cloudfront_distribution_id = data.terraform_remote_state.permanent.outputs.cloudfront_distribution_id
+  cloudfront_distribution_domain_name = data.terraform_remote_state.permanent.outputs.cloudfront_distribution_domain_name
   cloudfront_distribution_hosted_zone_id = data.terraform_remote_state.permanent.outputs.cloudfront_distribution_hosted_zone_id
 
   eks_role = data.terraform_remote_state.permanent.outputs.iam_roles["EKS_Role"]
