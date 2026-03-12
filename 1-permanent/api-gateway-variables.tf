@@ -17,9 +17,14 @@ variable "stage_name" {
 }
 
 variable "core_api_url" {
-  description = "Fallback integration URI when ephemeral listener output is not available."
+  description = "REST API integration URI for core service (must be full http/https URL)."
   type        = string
   default     = ""
+
+  validation {
+    condition     = can(regex("^https?://", trimspace(var.core_api_url)))
+    error_message = "core_api_url must be a non-empty URL starting with http:// or https://."
+  }
 }
 
 variable "core_api_host" {

@@ -84,6 +84,7 @@ resource "aws_wafv2_web_acl" "uploads_cf_acl" {
 
 # API 공격 대응 waf
 resource "aws_wafv2_web_acl" "api_waf" {
+  provider    = aws.use1
   name        = "Global-API-WAF"
   description = "WAF for API Brute-force protection"
   scope       = "CLOUDFRONT"

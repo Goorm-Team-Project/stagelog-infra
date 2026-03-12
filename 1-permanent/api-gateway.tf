@@ -6,8 +6,7 @@
 # Core REST API
 #------------------------------------------------------------
 locals {
-  core_listener_arn_from_ephemeral = try(data.terraform_remote_state.ephemeral.outputs.alb_https_listener_arn, "")
-  core_api_integration_uri         = local.core_listener_arn_from_ephemeral != "" ? local.core_listener_arn_from_ephemeral : var.core_api_url
+  core_api_integration_uri = trimspace(var.core_api_url)
 }
 
 resource "aws_api_gateway_rest_api" "stagelog_core_rest_api" {
