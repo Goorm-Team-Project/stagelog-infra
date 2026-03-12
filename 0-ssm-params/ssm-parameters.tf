@@ -7,7 +7,7 @@ locals {
     CORS_ALLOWED_ORIGINS          = "https://pearlinvest.click,https://www.pearlinvest.click"
     DB_MODE                       = "mysql"
     USE_INTERNAL_SERVICE_API      = "True"
-    DB_HOST                       = "stagelog-db-managed.c922amcmeywm.ap-northeast-2.rds.amazonaws.com"
+    DB_HOST                       = "stagelog-db-managed-v2.c922amcmeywm.ap-northeast-2.rds.amazonaws.com"
     DB_NAME_CORE                  = "stagelog_core"
     DB_USER_CORE                  = "stagelog_core_user"
     DB_NAME_AUTH                  = "stagelog_auth"
