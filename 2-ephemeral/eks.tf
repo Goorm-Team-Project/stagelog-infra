@@ -48,7 +48,7 @@ resource "aws_eks_addon" "stagelog_eks_kubeproxy" {
 resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
     cluster_name = aws_eks_cluster.stagelog-eks.name
     node_group_name = "stagelog-node-group-on-demand"
-    node_role_arn = local.eks_node_group_role
+    node_role_arn = aws_iam_role.stagelog_eks_node_group_role_managed.arn
 
     subnet_ids = [
         local.subnet_private_01,
@@ -74,7 +74,7 @@ resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
 resource "aws_eks_node_group" "stagelog_nodes_spot" {
     cluster_name = aws_eks_cluster.stagelog-eks.name
     node_group_name = "stagelog-node-group-spot"
-    node_role_arn = local.eks_node_group_role
+    node_role_arn = aws_iam_role.stagelog_eks_node_group_role_managed.arn
 
     subnet_ids = [
         local.subnet_private_01,

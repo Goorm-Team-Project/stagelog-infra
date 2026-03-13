@@ -30,13 +30,6 @@ output "security_groups" {
   }
 }
 
-output "iam_roles" {
-  value = {
-    "EKS_Role"            = aws_iam_role.stagelog_eks_role_managed.id
-    "EKS_node_group_Role" = aws_iam_role.stagelog_eks_node_group_role_managed.id
-  }
-}
-
 output "rds_endpoint" {
   description = "RDS Endpoint Address:Port"
   value       = aws_db_instance.stagelog-rds-managed.endpoint
