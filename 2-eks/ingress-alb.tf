@@ -15,12 +15,20 @@ resource "helm_release" "aws_load_balancer_controller" {
     yamlencode({
       clusterName = aws_eks_cluster.stagelog-eks.name
       region      = "ap-northeast-2"
+      vpcId       = local.vpc_id
       serviceAccount = {
-        create = false
+        create = true
         name   = aws_iam_role.alb_ingress_controller_role.name
+        annotations = {
+          "eks.amazonaws.com/role-arn" = aws_iam_role.alb_ingress_controller_role.arn
+        }
       }
     })
   ]
+
+  timeout = 600
+
+  depends_on = [aws_eks_node_group.stagelog_nodes_on_demand]
 }
 
 variable "ingress_alb_arn" {

@@ -97,15 +97,15 @@ resource "aws_iam_role_policy_attachment" "external_secrets_attach" {
 
 # IAM policy for ALB Ingress Controller
 resource "aws_iam_policy" "alb_ingress_controller_policy" {
-  name        = "ALBIngressControllerIAMPolicy-stagelog"
+  name        = "alb-ingress-controller-policy-stagelog"
   description = "IAM policy for ALB Ingress Controller to manage ALBs in EKS cluster."
   policy      = file("${path.module}/alb-ingress-controller-policy.json")
 }
 
 # IAM role for ALB Ingress Controller
 resource "aws_iam_role" "alb_ingress_controller_role" {
-  name               = "ALBIngressControllerIAMRole-stagelog"
-  
+  name               = "alb-ingress-controller-role-stagelog"
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -127,7 +127,7 @@ resource "aws_iam_role" "alb_ingress_controller_role" {
 
 # IAM policy attachment for ALB Ingress Controller
 resource "aws_iam_policy_attachment" "alb_ingress_controller_policy_attachment" {
-  name       = "ALBIngressControllerIAMPolicyAttachment-stagelog"
+  name       = "alb-ingress-controller-iam-policy-attachment-stagelog"
   policy_arn = aws_iam_policy.alb_ingress_controller_policy.arn
   roles      = [aws_iam_role.alb_ingress_controller_role.name]
 }
