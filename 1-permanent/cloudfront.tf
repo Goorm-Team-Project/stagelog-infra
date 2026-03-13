@@ -81,9 +81,9 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
 
   # API Gateway 오리진 (core routes, REST API v1)
   origin {
-    domain_name = "${aws_api_gateway_rest_api.stagelog_core_rest_api.id}.execute-api.${var.aws_region}.amazonaws.com"
+    domain_name = var.core_api_execute_domain_name
     origin_id   = "stagelog-core-rest-api"
-    origin_path = "/${aws_api_gateway_stage.stagelog_core_rest_stage.stage_name}"
+    origin_path = "/${var.core_api_stage_name}"
 
     custom_origin_config {
       http_port              = 80

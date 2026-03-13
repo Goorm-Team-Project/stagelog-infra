@@ -19,7 +19,6 @@ variable "stage_name" {
 variable "core_api_url" {
   description = "REST API integration URI for core service (must be full http/https URL)."
   type        = string
-  default     = ""
 
   validation {
     condition     = can(regex("^https?://", trimspace(var.core_api_url)))
@@ -32,10 +31,6 @@ variable "core_api_host" {
   type        = string
   default     = ""
 }
-
-
-
-
 
 variable "allowed_cors_origins" {
   description = "Allowed CORS origins for API Gateway"
@@ -52,8 +47,7 @@ variable "log_retention_days" {
 variable "api_domain_name" {
   description = "Custom domain name to expose API Gateway"
   type        = string
-  # 사용자 요청 기준 고정 도메인
-  default = "pearlinvest.click"
+  default     = "pearlinvest.click"
 }
 
 variable "api_domain_certificate_arn" {
@@ -71,26 +65,15 @@ variable "route53_hosted_zone_id" {
   description = "Route53 Hosted Zone ID for API custom domain alias record"
   type        = string
   default     = ""
+
   validation {
     condition     = !var.create_route53_api_record || length(trimspace(var.route53_hosted_zone_id)) > 0
     error_message = "route53_hosted_zone_id is required when create_route53_api_record is true."
   }
 }
 
-variable "rest_auth_stage_name" {
-  description = "Stage name for REST API auth gateway"
+variable "authorizer_lambda_function_name" {
+  description = "Auth authorizer Lambda function name managed in 1-permanent stack"
   type        = string
-  default     = "prod"
-}
-
-variable "core_api_execute_domain_name" {
-  description = "Core REST API execute-api domain name used by CloudFront origin"
-  type        = string
-  default     = "example.execute-api.ap-northeast-2.amazonaws.com"
-}
-
-variable "core_api_stage_name" {
-  description = "Core REST API stage name used by CloudFront origin path"
-  type        = string
-  default     = "prod"
+  default     = "stagelog-auth-authorizer"
 }
