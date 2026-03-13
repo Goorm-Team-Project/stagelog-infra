@@ -4,6 +4,7 @@ data "aws_route53_zone" "main" {
 }
 
 resource "aws_route53_record" "root" {
+  count   = local.cloudfront_distribution_domain_name != "" && local.cloudfront_distribution_hosted_zone_id != "" ? 1 : 0
   zone_id = data.aws_route53_zone.main.zone_id
   name    = "pearlinvest.click"
   type    = "A"
@@ -18,6 +19,7 @@ resource "aws_route53_record" "root" {
 }
 
 resource "aws_route53_record" "www" {
+  count   = local.cloudfront_distribution_domain_name != "" && local.cloudfront_distribution_hosted_zone_id != "" ? 1 : 0
   zone_id = data.aws_route53_zone.main.zone_id
   name    = "www.pearlinvest.click"
   type    = "A"

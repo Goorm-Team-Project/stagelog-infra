@@ -5,7 +5,9 @@
 - private(db) 서브넷: DB 서버, 외부 통신 불가
 */
 resource "aws_vpc" "stagelog-vpc" {
-  cidr_block = "10.1.0.0/16"
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
 
   tags = { Name = "stagelog-vpc" }
 }

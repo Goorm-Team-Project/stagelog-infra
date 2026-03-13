@@ -30,14 +30,15 @@ output "security_groups" {
   }
 }
 
+# RDS is unmanaged in this stack; expose endpoint from input vars for compatibility.
 output "rds_endpoint" {
   description = "RDS Endpoint Address:Port"
-  value       = aws_db_instance.stagelog-rds-managed.endpoint
+  value       = format("%s:%d", var.db_host, 3306)
 }
 
 output "rds_address" {
   description = "RDS Address"
-  value       = aws_db_instance.stagelog-rds-managed.address
+  value       = var.db_host
 }
 
 output "uploads_cloudfront_domain" {

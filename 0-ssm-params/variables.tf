@@ -16,6 +16,12 @@ variable "environment" {
   default     = "dev"
 }
 
+variable "service_name" {
+  description = "Single SSM service path name for unified runtime config"
+  type        = string
+  default     = "migration"
+}
+
 variable "kms_key_id" {
   description = "Optional KMS Key ID/ARN for SecureString (empty = aws/ssm)"
   type        = string
