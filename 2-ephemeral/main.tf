@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.0"
+    }
   }
 
   backend "s3" {
@@ -24,6 +28,18 @@ provider "aws" {
     tags = {
       Project = "stagelog"
     }
+  }
+}
+
+data "aws_eks_cluster_auth" "stagelog-eks" {
+  name = aws_eks_cluster.stagelog-eks.name
+}
+
+provider "helm" {
+  kubernetes {
+    host = aws_eks_cluster.stagelog-eks.endpoint
+    cluster_ca_certificate = base64decode(aws_eks_cluster.stagelog-eks.certificate_authority[0].data)
+    token = data.aws_eks_cluster_auth.stagelog-eks.token
   }
 }
 

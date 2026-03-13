@@ -2,6 +2,27 @@
 # - ALB 자체는 Terraform이 생성하지 않는다.
 # - API Gateway가 필요로 하는 HTTPS listener ARN만 output으로 제공한다.
 
+resource "helm_release" "aws_load_balancer_controller" {
+  name = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart = "aws-load-balancer-controller"
+  version = "3.1.0"
+  namespace = "kube-system"
+
+  create_namespace = false
+
+  values = [
+    yamlencode({
+      clusterName = aws_eks_cluster.stagelog-eks.name
+      region      = "ap-northeast-2"
+      serviceAccount = {
+        create = false
+        name   = aws_iam_role.alb_ingress_controller_role.name
+      }
+    })
+  ]
+}
+
 variable "ingress_alb_arn" {
   description = "Existing ingress ALB ARN (optional). Used to resolve HTTPS listener ARN when listener ARN is not provided."
   type        = string
