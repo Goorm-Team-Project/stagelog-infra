@@ -105,7 +105,7 @@ data "tls_certificate" "eks" {
 }
 
 # OIDC생성
-resource "aws_iam_openid_connect_provider" "eks" {
+resource "aws_iam_openid_connect_provider" "eks_oidc" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
   url             = aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer

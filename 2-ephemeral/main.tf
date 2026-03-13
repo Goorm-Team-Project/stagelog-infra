@@ -35,14 +35,6 @@ data "aws_eks_cluster_auth" "stagelog-eks" {
   name = aws_eks_cluster.stagelog-eks.name
 }
 
-provider "helm" {
-  kubernetes {
-    host = aws_eks_cluster.stagelog-eks.endpoint
-    cluster_ca_certificate = base64decode(aws_eks_cluster.stagelog-eks.certificate_authority[0].data)
-    token = data.aws_eks_cluster_auth.stagelog-eks.token
-  }
-}
-
 variable "env" {
   type    = string
   default = "dev"

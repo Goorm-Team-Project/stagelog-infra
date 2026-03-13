@@ -1,8 +1,3 @@
-# OIDC provider for EKS cluster
-data "aws_iam_openid_connect_provider" "eks_oidc" {
-  url = replace(aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer, "https://", "")
-}
-
 # IAM policy for ALB Ingress Controller
 resource "aws_iam_policy" "alb_ingress_controller_policy" {
   name        = "ALBIngressControllerIAMPolicy-stagelog"
@@ -21,7 +16,7 @@ resource "aws_iam_role" "alb_ingress_controller_role" {
         Action = "sts:AssumeRoleWithWebIdentity" # EKS OIDC provider를 통한 웹 아이덴티티 연동
         Effect = "Allow"
         Principal = {
-            Federated = data.aws_iam_openid_connect_provider.eks_oidc.arn
+            Federated = aws_iam_openid_connect_provider.eks_oidc.arn
         }
         Condition = { 
             StringEquals = {
