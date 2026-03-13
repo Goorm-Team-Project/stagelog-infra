@@ -10,10 +10,11 @@ resource "aws_iam_role" "stagelog_eks_role_managed" {
       Principal = { Service = "eks.amazonaws.com" }
     }]
   })
+}
 
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  ]
+resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  role       = aws_iam_role.stagelog_eks_role_managed.name
 }
 
 # EKS 노드 그룹 역할
@@ -28,12 +29,21 @@ resource "aws_iam_role" "stagelog_eks_node_group_role_managed" {
       Principal = { Service = "ec2.amazonaws.com" }
     }]
   })
+}
 
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  ]
+resource "aws_iam_role_policy_attachment" "eks_node_group_attach_worker" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+  role       = aws_iam_role.stagelog_eks_node_group_role_managed.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_group_attach_ecr" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = aws_iam_role.stagelog_eks_node_group_role_managed.name
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_group_attach_cni" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+  role       = aws_iam_role.stagelog_eks_node_group_role_managed.name
 }
 
 # SSM Parameter Store를 읽을 수 있는 "권한 내용(Policy)"

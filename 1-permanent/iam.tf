@@ -12,9 +12,14 @@ resource "aws_iam_role" "stagelog_rds_lambda_role_managed" {
       }
     }]
   })
+}
 
-  managed_policy_arns = [
-    "arn:aws:iam::430118823715:policy/service-role/AWSLambdaBasicExecutionRole-dfc0340f-2e3b-4f7c-891c-98b53cfeccec",
-    "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-  ]
+resource "aws_iam_role_policy_attachment" "rds_lambda_attach_basic" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+  role       = aws_iam_role.stagelog_rds_lambda_role_managed.name
+}
+
+resource "aws_iam_role_policy_attachment" "rds_lambda_attach_vpc_access" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+  role       = aws_iam_role.stagelog_rds_lambda_role_managed.name
 }

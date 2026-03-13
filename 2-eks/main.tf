@@ -14,7 +14,7 @@ terraform {
 
   backend "s3" {
     bucket         = "stagelog-tfstate"
-    key            = "develop/ephemeral/terraform.tfstate"
+    key            = "develop/eks/terraform.tfstate"
     region         = "ap-northeast-2"
     encrypt        = true
     dynamodb_table = "terraform-lock-table"
@@ -29,10 +29,6 @@ provider "aws" {
       Project = "stagelog"
     }
   }
-}
-
-data "aws_eks_cluster_auth" "stagelog-eks" {
-  name = aws_eks_cluster.stagelog-eks.name
 }
 
 variable "env" {
@@ -55,7 +51,4 @@ locals {
 
   alb_sg     = data.terraform_remote_state.permanent.outputs.security_groups["alb_sg"]
   bastion_sg = data.terraform_remote_state.permanent.outputs.security_groups["bastion_sg"]
-
-  cloudfront_distribution_domain_name    = try(data.terraform_remote_state.permanent.outputs.cloudfront_distribution_domain_name, null) != null ? data.terraform_remote_state.permanent.outputs.cloudfront_distribution_domain_name : ""
-  cloudfront_distribution_hosted_zone_id = try(data.terraform_remote_state.permanent.outputs.cloudfront_distribution_hosted_zone_id, null) != null ? data.terraform_remote_state.permanent.outputs.cloudfront_distribution_hosted_zone_id : ""
 }
