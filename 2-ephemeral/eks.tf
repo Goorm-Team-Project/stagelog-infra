@@ -1,7 +1,7 @@
 resource "aws_eks_cluster" "stagelog-eks" {
     name     = "stagelog-eks"
     version  = "1.34"
-    role_arn = local.eks_role
+    role_arn = aws_iam_role.stagelog_eks_role_managed.arn
 
     vpc_config {
         subnet_ids = [
