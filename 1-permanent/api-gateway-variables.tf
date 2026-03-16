@@ -16,27 +16,6 @@ variable "stage_name" {
   default     = "prod"
 }
 
-variable "core_api_url" {
-  description = "REST API integration URI for core service (must be full http/https URL)."
-  type        = string
-  default     = ""
-
-  validation {
-    condition     = can(regex("^https?://", trimspace(var.core_api_url)))
-    error_message = "core_api_url must be a non-empty URL starting with http:// or https://."
-  }
-}
-
-variable "core_api_host" {
-  description = "Core upstream host for TLS verify (optional)."
-  type        = string
-  default     = ""
-}
-
-
-
-
-
 variable "allowed_cors_origins" {
   description = "Allowed CORS origins for API Gateway"
   type        = list(string)
