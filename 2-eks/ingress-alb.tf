@@ -1,6 +1,6 @@
 # Ingress Controller managed ALB contract
-# - ALB 자체는 Terraform이 생성하지 않는다.
-# - API Gateway가 필요로 하는 HTTPS listener ARN만 output으로 제공한다.
+# - ALB 자체는 Ingress Controller가 생성한다.
+# - Terraform은 EKS 클러스터 태그 기준으로 ALB/HTTPS listener를 조회해 output으로 제공한다.
 
 resource "helm_release" "aws_load_balancer_controller" {
   name = "aws-load-balancer-controller"
@@ -31,34 +31,32 @@ resource "helm_release" "aws_load_balancer_controller" {
   depends_on = [aws_eks_node_group.stagelog_nodes_on_demand]
 }
 
-variable "ingress_alb_arn" {
-  description = "Existing ingress ALB ARN (optional). Used to resolve HTTPS listener ARN when listener ARN is not provided."
-  type        = string
-  default     = ""
+data "aws_lbs" "ingress_controller_albs" {
+  tags = {
+    "elbv2.k8s.aws/cluster" = aws_eks_cluster.stagelog-eks.name
+  }
 }
 
-variable "ingress_alb_https_listener_arn" {
-  description = "HTTPS listener ARN for ingress ALB. If set, takes precedence."
-  type        = string
-  default     = ""
+data "aws_lb" "ingress_controller_alb" {
+  arn = one(data.aws_lbs.ingress_controller_albs.arns)
 }
 
 data "aws_lb_listener" "ingress_https" {
-  count = var.ingress_alb_https_listener_arn == "" && var.ingress_alb_arn != "" ? 1 : 0
-
-  load_balancer_arn = var.ingress_alb_arn
+  load_balancer_arn = data.aws_lb.ingress_controller_alb.arn
   port              = 443
 }
 
 locals {
-  resolved_ingress_alb_https_listener_arn = (
-    var.ingress_alb_https_listener_arn != ""
-    ? var.ingress_alb_https_listener_arn
-    : try(data.aws_lb_listener.ingress_https[0].arn, "")
-  )
+  resolved_ingress_alb_https_listener_arn = data.aws_lb_listener.ingress_https.arn
+  resolved_core_api_url                   = "https://${data.aws_lb.ingress_controller_alb.dns_name}"
 }
 
 output "alb_https_listener_arn" {
   description = "HTTPS listener ARN used by API Gateway VPC Link integration."
   value       = local.resolved_ingress_alb_https_listener_arn
+}
+
+output "core_api_url" {
+  description = "Core API upstream URL for API Gateway HTTP proxy integration."
+  value       = local.resolved_core_api_url
 }

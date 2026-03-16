@@ -18,7 +18,7 @@ data "aws_security_group" "lambda_sg" {
 # Core REST API
 #------------------------------------------------------------
 locals {
-  core_api_integration_uri = trimspace(var.core_api_url)
+  core_api_integration_uri = trimspace(data.terraform_remote_state.eks.outputs.core_api_url)
 }
 
 resource "aws_api_gateway_rest_api" "stagelog_core_rest_api" {
@@ -26,6 +26,13 @@ resource "aws_api_gateway_rest_api" "stagelog_core_rest_api" {
 
   endpoint_configuration {
     types = ["REGIONAL"]
+  }
+
+  lifecycle {
+    precondition {
+      condition     = can(regex("^https?://", local.core_api_integration_uri))
+      error_message = "EKS remote state output core_api_url must be a non-empty URL starting with http:// or https://."
+    }
   }
 }
 
@@ -431,7 +438,7 @@ resource "aws_lambda_permission" "allow_apigw_rest_core_authorizer" {
 #------------------------------------------------------------
 resource "aws_api_gateway_domain_name" "api_custom_domain" {
   domain_name              = var.api_domain_name
-  regional_certificate_arn = var.api_domain_certificate_arn
+  regional_certificate_arn = data.aws_acm_certificate.api_domain.arn
   security_policy          = "TLS_1_2"
 
   endpoint_configuration {
