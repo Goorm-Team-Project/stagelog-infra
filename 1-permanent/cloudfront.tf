@@ -69,6 +69,7 @@ resource "aws_cloudfront_distribution" "uploads_cdn" {
 # CloudFront Distribution stagelog
 resource "aws_cloudfront_distribution" "stagelog_cdn" {
   enabled = true
+  aliases = ["pearlinvest.click", "www.pearlinvest.click"]
 
   tags = { Name = "stagelog-cloudfront" }
 
@@ -185,7 +186,9 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
 
   # SSL 설정
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = aws_acm_certificate_validation.cert.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   # WAF 설정
