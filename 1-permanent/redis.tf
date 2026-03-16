@@ -48,8 +48,8 @@ resource "aws_security_group" "redis_sg" {
 resource "aws_elasticache_subnet_group" "stagelog_redis_subnet_group" {
   name = "stagelog-redis-subnet-group"
   subnet_ids = [
-    aws_subnet.stagelog-subnet-private-2a.id,
-    aws_subnet.stagelog-subnet-private-2c.id,
+    aws_subnet.stagelog-subnet-private-db-2a.id,
+    aws_subnet.stagelog-subnet-private-db-2c.id,
   ]
 
   tags = {
