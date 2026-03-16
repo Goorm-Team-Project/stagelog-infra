@@ -117,7 +117,7 @@ resource "aws_iam_role" "alb_ingress_controller_role" {
         }
         Condition = { 
             StringEquals = {
-                "${replace(aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller" 
+                "${replace(aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:alb-ingress-controller-role-stagelog" 
             }
         }
       }
