@@ -11,6 +11,10 @@ resource "aws_eks_cluster" "stagelog-eks" {
         endpoint_private_access = true # 프라이빗 엔드포인트 액세스 활성화
         endpoint_public_access  = true # 퍼블릭 엔드포인트 액세스 활성화
     }
+
+    access_config {
+      authentication_mode = "API_AND_CONFIG_MAP" # API 및 ConfigMap을 통한 인증 모드
+    }
     
     tags = {
         Name = "stagelog-eks"
@@ -109,5 +113,24 @@ resource "aws_iam_openid_connect_provider" "eks_oidc" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
   url             = aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer
+}
+
+# 1. Access Entry 생성 (SSO 역할을 EKS에 등록)
+resource "aws_eks_access_entry" "sso_admin" {
+  cluster_name      = aws_eks_cluster.stagelog-eks.name
+  principal_arn     = "arn:aws:iam::430118823715:role/aws-reserved/sso.amazonaws.com/ap-northeast-2/AWSReservedSSO_AdministratorAccess_54cd6b70336b51ac"
+  type              = "STANDARD"
+  user_name         = "sso_admin"
+}
+
+# 2. Access Policy: 'system:masters'와 동일한 'ClusterAdmin' 권한 부여
+resource "aws_eks_associate_access_policy" "sso_admin_policy" {
+  cluster_name  = aws_eks_cluster.stagelog-eks.name
+  principal_arn = aws_eks_access_entry.sso_admin.principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
 }
 
