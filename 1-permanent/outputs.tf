@@ -60,3 +60,18 @@ output "auth_lambda_artifact_bucket_name" {
   description = "S3 bucket name used for auth lambda artifacts"
   value       = aws_s3_bucket.auth_lambda_artifacts.bucket
 }
+
+output "redis_primary_endpoint" {
+  description = "Primary endpoint address for Redis"
+  value       = aws_elasticache_replication_group.stagelog_redis.primary_endpoint_address
+}
+
+output "redis_reader_endpoint" {
+  description = "Reader endpoint address for Redis"
+  value       = aws_elasticache_replication_group.stagelog_redis.reader_endpoint_address
+}
+
+output "redis_port" {
+  description = "Redis endpoint port"
+  value       = aws_elasticache_replication_group.stagelog_redis.port
+}

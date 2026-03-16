@@ -1,6 +1,6 @@
-# Redis (ElastiCache) - ephemeral layer
+# Redis (ElastiCache) - permanent layer
 # - VPC private subnet에 배치
-# - 개발 단계 비용 절감을 위해 기본 단일 노드 구성
+# - 기본 단일 노드 구성
 
 variable "redis_node_type" {
   description = "ElastiCache Redis node type"
@@ -14,12 +14,6 @@ variable "redis_engine_version" {
   default     = "7.1"
 }
 
-variable "redis_port" {
-  description = "Redis port"
-  type        = number
-  default     = 6379
-}
-
 variable "redis_snapshot_retention_limit" {
   description = "Daily snapshot retention days"
   type        = number
@@ -29,7 +23,7 @@ variable "redis_snapshot_retention_limit" {
 resource "aws_security_group" "redis_sg" {
   name        = "stagelog-redis-sg"
   description = "Security group for ElastiCache Redis"
-  vpc_id      = local.vpc_id
+  vpc_id      = aws_vpc.stagelog-vpc.id
 
   tags = {
     Name = "stagelog-sg-redis"
@@ -54,8 +48,8 @@ resource "aws_security_group" "redis_sg" {
 resource "aws_elasticache_subnet_group" "stagelog_redis_subnet_group" {
   name = "stagelog-redis-subnet-group"
   subnet_ids = [
-    local.subnet_private_01,
-    local.subnet_private_02,
+    aws_subnet.stagelog-subnet-private-2a.id,
+    aws_subnet.stagelog-subnet-private-2c.id,
   ]
 
   tags = {
