@@ -45,3 +45,9 @@ variable "authorizer_lambda_function_name" {
   type        = string
   default     = "stagelog-auth-authorizer"
 }
+
+variable "auth_api_lambda_function_name" {
+  description = "Auth API Lambda function name managed in 1-permanent stack"
+  type        = string
+  default     = "stagelog-auth-api"
+}

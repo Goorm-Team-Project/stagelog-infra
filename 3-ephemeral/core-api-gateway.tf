@@ -1,8 +1,12 @@
-# Core REST API moved from 1-permanent to 2-ephemeral.
+# Core REST API moved from 1-permanent to 3-ephemeral.
 # This stack depends on EKS ingress/ALB readiness.
 
 data "aws_lambda_function" "auth_authorizer" {
   function_name = var.authorizer_lambda_function_name
+}
+
+data "aws_lambda_function" "auth_api" {
+  function_name = var.auth_api_lambda_function_name
 }
 
 data "aws_security_group" "lambda_sg" {
@@ -18,7 +22,8 @@ data "aws_security_group" "lambda_sg" {
 # Core REST API
 #------------------------------------------------------------
 locals {
-  core_api_integration_uri = trimspace(data.terraform_remote_state.eks.outputs.core_api_url)
+  core_api_integration_uri   = trimspace(data.terraform_remote_state.eks.outputs.core_api_url)
+  auth_api_lambda_invoke_uri = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${data.aws_lambda_function.auth_api.arn}/invocations"
 }
 
 resource "aws_api_gateway_rest_api" "stagelog_core_rest_api" {
@@ -56,6 +61,30 @@ resource "aws_api_gateway_resource" "core_api_root_api" {
   rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
   parent_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.root_resource_id
   path_part   = "api"
+}
+
+resource "aws_api_gateway_resource" "core_api_auth" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_root_api.id
+  path_part   = "auth"
+}
+
+resource "aws_api_gateway_resource" "core_api_auth_proxy" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_auth.id
+  path_part   = "{proxy+}"
+}
+
+resource "aws_api_gateway_resource" "core_api_auth_keep" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_auth.id
+  path_part   = "keep"
+}
+
+resource "aws_api_gateway_resource" "core_api_auth_logout" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_auth.id
+  path_part   = "logout"
 }
 
 resource "aws_api_gateway_resource" "core_api_proxy" {
@@ -169,6 +198,48 @@ resource "aws_api_gateway_method" "core_health_get" {
   resource_id   = aws_api_gateway_resource.core_health.id
   http_method   = "GET"
   authorization = "NONE"
+}
+
+# /api/auth (ANY) -> auth-api Lambda (public)
+resource "aws_api_gateway_method" "core_auth_root_any" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_auth.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+# /api/auth/{proxy+} (ANY) -> auth-api Lambda (public)
+resource "aws_api_gateway_method" "core_auth_proxy_any" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_auth_proxy.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+# /api/auth/keep (GET) -> auth-api Lambda (protected)
+resource "aws_api_gateway_method" "core_auth_keep_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_auth_keep.id
+  http_method   = "GET"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.core_jwt_authorizer.id
+
+  request_parameters = {
+    "method.request.header.Authorization" = true
+  }
+}
+
+# /api/auth/logout (POST) -> auth-api Lambda (protected)
+resource "aws_api_gateway_method" "core_auth_logout_post" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_auth_logout.id
+  http_method   = "POST"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.core_jwt_authorizer.id
+
+  request_parameters = {
+    "method.request.header.Authorization" = true
+  }
 }
 
 resource "aws_api_gateway_method" "core_api_proxy_any" {
@@ -292,6 +363,42 @@ resource "aws_api_gateway_integration" "core_health_integration" {
   }
 }
 
+resource "aws_api_gateway_integration" "core_auth_root_any_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_auth.id
+  http_method             = aws_api_gateway_method.core_auth_root_any.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = local.auth_api_lambda_invoke_uri
+}
+
+resource "aws_api_gateway_integration" "core_auth_proxy_any_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_auth_proxy.id
+  http_method             = aws_api_gateway_method.core_auth_proxy_any.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = local.auth_api_lambda_invoke_uri
+}
+
+resource "aws_api_gateway_integration" "core_auth_keep_get_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_auth_keep.id
+  http_method             = aws_api_gateway_method.core_auth_keep_get.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = local.auth_api_lambda_invoke_uri
+}
+
+resource "aws_api_gateway_integration" "core_auth_logout_post_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_auth_logout.id
+  http_method             = aws_api_gateway_method.core_auth_logout_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = local.auth_api_lambda_invoke_uri
+}
+
 resource "aws_api_gateway_integration" "core_protected_proxy_integration" {
   rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
   resource_id             = aws_api_gateway_resource.core_api_proxy.id
@@ -367,6 +474,10 @@ resource "aws_api_gateway_deployment" "stagelog_core_rest_deployment" {
       aws_api_gateway_method.core_public_post_detail_get.id,
       aws_api_gateway_method.core_public_post_comments_get.id,
       aws_api_gateway_method.core_health_get.id,
+      aws_api_gateway_method.core_auth_root_any.id,
+      aws_api_gateway_method.core_auth_proxy_any.id,
+      aws_api_gateway_method.core_auth_keep_get.id,
+      aws_api_gateway_method.core_auth_logout_post.id,
       aws_api_gateway_method.core_api_proxy_any.id,
       aws_api_gateway_integration.core_public_events_integration.id,
       aws_api_gateway_integration.core_public_event_detail_integration.id,
@@ -375,6 +486,10 @@ resource "aws_api_gateway_deployment" "stagelog_core_rest_deployment" {
       aws_api_gateway_integration.core_public_post_detail_integration.id,
       aws_api_gateway_integration.core_public_post_comments_integration.id,
       aws_api_gateway_integration.core_health_integration.id,
+      aws_api_gateway_integration.core_auth_root_any_integration.id,
+      aws_api_gateway_integration.core_auth_proxy_any_integration.id,
+      aws_api_gateway_integration.core_auth_keep_get_integration.id,
+      aws_api_gateway_integration.core_auth_logout_post_integration.id,
       aws_api_gateway_integration.core_protected_proxy_integration.id,
       aws_api_gateway_gateway_response.core_unauthorized.id,
       aws_api_gateway_gateway_response.core_access_denied.id,
@@ -393,6 +508,10 @@ resource "aws_api_gateway_deployment" "stagelog_core_rest_deployment" {
     aws_api_gateway_integration.core_public_post_detail_integration,
     aws_api_gateway_integration.core_public_post_comments_integration,
     aws_api_gateway_integration.core_health_integration,
+    aws_api_gateway_integration.core_auth_root_any_integration,
+    aws_api_gateway_integration.core_auth_proxy_any_integration,
+    aws_api_gateway_integration.core_auth_keep_get_integration,
+    aws_api_gateway_integration.core_auth_logout_post_integration,
     aws_api_gateway_integration.core_protected_proxy_integration,
     aws_api_gateway_gateway_response.core_unauthorized,
     aws_api_gateway_gateway_response.core_access_denied,
@@ -429,6 +548,14 @@ resource "aws_lambda_permission" "allow_apigw_rest_core_authorizer" {
   statement_id  = "AllowExecutionFromRestApiGatewayCoreAuthorizer"
   action        = "lambda:InvokeFunction"
   function_name = data.aws_lambda_function.auth_authorizer.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.stagelog_core_rest_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "allow_apigw_rest_core_auth_api" {
+  statement_id  = "AllowExecutionFromRestApiGatewayCoreAuthApi"
+  action        = "lambda:InvokeFunction"
+  function_name = data.aws_lambda_function.auth_api.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.stagelog_core_rest_api.execution_arn}/*/*"
 }

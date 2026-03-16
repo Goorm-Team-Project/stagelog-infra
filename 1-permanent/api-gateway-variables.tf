@@ -77,12 +77,6 @@ variable "route53_hosted_zone_id" {
   }
 }
 
-variable "rest_auth_stage_name" {
-  description = "Stage name for REST API auth gateway"
-  type        = string
-  default     = "prod"
-}
-
 variable "core_api_execute_domain_name" {
   description = "Core REST API execute-api domain name used by CloudFront origin"
   type        = string
