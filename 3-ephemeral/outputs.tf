@@ -1,7 +1,3 @@
-output "nat_gateway_id" {
-  value = aws_nat_gateway.stagelog-nat-gw.id
-}
-
 output "redis_primary_endpoint" {
   description = "Primary endpoint address for Redis"
   value       = aws_elasticache_replication_group.stagelog_redis.primary_endpoint_address
