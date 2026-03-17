@@ -14,6 +14,7 @@ resource "aws_eks_cluster" "stagelog-eks" {
 
     access_config {
       authentication_mode = "API_AND_CONFIG_MAP" # API 및 ConfigMap을 통한 인증 모드
+      bootstrap_cluster_creator_admin_permissions = true
     }
     
     tags = {
@@ -124,7 +125,7 @@ resource "aws_eks_access_entry" "sso_admin" {
 }
 
 # 2. Access Policy: 'system:masters'와 동일한 'ClusterAdmin' 권한 부여
-resource "aws_eks_associate_access_policy" "sso_admin_policy" {
+resource "aws_eks_access_policy_association" "sso_admin_policy" {
   cluster_name  = aws_eks_cluster.stagelog-eks.name
   principal_arn = aws_eks_access_entry.sso_admin.principal_arn
   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
