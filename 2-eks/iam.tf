@@ -75,7 +75,7 @@ resource "aws_iam_role" "external_secrets" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRoleWithWebIdentity" 
+        Action = "sts:AssumeRoleWithWebIdentity"
         Effect = "Allow"
         Principal = {
           Federated = aws_iam_openid_connect_provider.eks_oidc.arn
@@ -91,8 +91,8 @@ resource "aws_iam_role" "external_secrets" {
 }
 
 resource "aws_iam_role_policy_attachment" "external_secrets_attach" {
-  role       = aws_iam_role.external_secrets.name 
-  policy_arn = aws_iam_policy.external_secrets.arn 
+  role       = aws_iam_role.external_secrets.name
+  policy_arn = aws_iam_policy.external_secrets.arn
 }
 
 # IAM policy for ALB Ingress Controller
@@ -104,7 +104,7 @@ resource "aws_iam_policy" "alb_ingress_controller_policy" {
 
 # IAM role for ALB Ingress Controller
 resource "aws_iam_role" "alb_ingress_controller_role" {
-  name               = "alb-ingress-controller-role-stagelog"
+  name = "alb-ingress-controller-role-stagelog"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -113,12 +113,12 @@ resource "aws_iam_role" "alb_ingress_controller_role" {
         Action = "sts:AssumeRoleWithWebIdentity" # EKS OIDC provider를 통한 웹 아이덴티티 연동
         Effect = "Allow"
         Principal = {
-            Federated = aws_iam_openid_connect_provider.eks_oidc.arn
+          Federated = aws_iam_openid_connect_provider.eks_oidc.arn
         }
-        Condition = { 
-            StringEquals = {
-                "${replace(aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:alb-ingress-controller-role-stagelog" 
-            }
+        Condition = {
+          StringEquals = {
+            "${replace(aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:alb-ingress-controller-role-stagelog"
+          }
         }
       }
     ]

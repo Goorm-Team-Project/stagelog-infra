@@ -3,11 +3,11 @@
 # - Terraform은 EKS 클러스터 태그 기준으로 ALB/HTTPS listener를 조회해 output으로 제공한다.
 
 resource "helm_release" "aws_load_balancer_controller" {
-  name = "aws-load-balancer-controller"
+  name       = "aws-load-balancer-controller"
   repository = "https://aws.github.io/eks-charts"
-  chart = "aws-load-balancer-controller"
-  version = "3.1.0"
-  namespace = "kube-system"
+  chart      = "aws-load-balancer-controller"
+  version    = "3.1.0"
+  namespace  = "kube-system"
 
   create_namespace = false
 
@@ -36,7 +36,7 @@ data "aws_lbs" "ingress_controller_albs" {
     "elbv2.k8s.aws/cluster" = aws_eks_cluster.stagelog-eks.name
   }
 
-  depends_on = [ helm_release.aws_load_balancer_controller ]
+  depends_on = [helm_release.aws_load_balancer_controller]
 }
 
 locals {
@@ -60,7 +60,7 @@ locals {
   # resolved_ingress_alb_https_listener_arn = try(data.aws_lb_listener.ingress_https[0].arn, "")
   # resolved_core_api_url                   = try("https://${data.aws_lb.ingress_controller_alb[0].dns_name}", "")
   resolved_ingress_alb_https_listener_arn = try(data.aws_lb_listener.ingress_https.arn, "")
-  resolved_core_api_url                   = try("https://${data.aws_lb.ingress_controller_alb.dns_name}", "")
+  resolved_core_api_url                   = "https://api.pearlinvest.click"
 }
 
 output "alb_https_listener_arn" {
