@@ -15,13 +15,13 @@ locals {
     DB_NAME_EVENTS                = "stagelog_events"
     DB_USER_EVENTS                = "stagelog_events_user"
     AWS_REGION                    = var.aws_region
-    S3_UPLOAD_BUCKET              = "replace-me"
-    AWS_STORAGE_BUCKET_NAME       = ""
-    S3_BUCKET                     = ""
+    S3_UPLOAD_BUCKET              = "stagelog-dev-uploads-v2"
+    AWS_STORAGE_BUCKET_NAME       = "stagelog-dev-uploads-v2"
+    S3_BUCKET                     = "stagelog-dev-uploads-v2"
     S3_UPLOAD_PREFIX              = "uploads/"
     S3_PRESIGN_EXPIRES            = "300"
-    S3_PUBLIC_BASE_URL            = ""
-    REDIS_HOST                    = ""
+    S3_PUBLIC_BASE_URL            = "https://dsbbv32h70cvl.cloudfront.net"
+    REDIS_HOST                    = "stagelog-redis.uaksc2.ng.0001.apn2.cache.amazonaws.com"
     REDIS_PORT                    = "6379"
     REDIS_DB                      = "0"
     REDIS_PASSWORD                = ""
@@ -36,7 +36,7 @@ locals {
     GATEWAY_USER_ID_HEADER        = "X-User-Id"
 
     NOTIFICATION_EVENT_BUS_NAME             = "stagelog-notification-bus"
-    NOTIFICATION_SQS_QUEUE_URL              = ""
+    NOTIFICATION_SQS_QUEUE_URL              = "https://sqs.ap-northeast-2.amazonaws.com/430118823715/stagelog-notification-queue"
     NOTIFICATION_DDB_TABLE_NAME             = "stagelog-notifications"
     NOTIFICATION_CONSUMER_MAX_MESSAGES      = "10"
     NOTIFICATION_CONSUMER_WAIT_TIME_SECONDS = "20"
@@ -69,6 +69,12 @@ locals {
     for k, v in local.unified_secure_params :
     "${local.prefix}/${var.service_name}/${k}" => v
   }
+
+  unified_dotenv_params = merge(local.unified_string_params, local.unified_secure_params)
+  backend_dotenv_value = join("\n", [
+    for k in sort(keys(local.unified_dotenv_params)) :
+    "${k}=${local.unified_dotenv_params[k]}"
+  ])
 }
 
 resource "aws_ssm_parameter" "string_params" {
@@ -97,5 +103,18 @@ resource "aws_ssm_parameter" "secure_params" {
   tags = {
     Service = var.service_name
     Kind    = "secret"
+  }
+}
+
+resource "aws_ssm_parameter" "backend_dotenv" {
+  name      = var.backend_env_parameter_name
+  type      = "SecureString"
+  value     = local.backend_dotenv_value
+  overwrite = true
+  key_id    = var.kms_key_id != "" ? var.kms_key_id : null
+
+  tags = {
+    Service = var.service_name
+    Kind    = "envfile"
   }
 }

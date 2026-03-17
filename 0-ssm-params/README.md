@@ -9,10 +9,14 @@ SSM Parameter Store only stack for unified runtime configuration of `stagelog-ba
   - `DB_PASSWORD_CORE`
   - `DB_PASSWORD_AUTH`
   - `DB_PASSWORD_EVENTS`
+- Unified SecureString `.env` parameter for ExternalSecret file mount:
+  - default: `/stagelog/backend/.env`
 
 ## Path convention
 - `/<project>/<environment>/<service_name>/<KEY>`
 - Example: `/stagelog/dev/migration/DB_HOST`
+- Unified `.env` path (separate, fixed by variable):
+  - default: `/stagelog/backend/.env`
 
 ## Apply
 ```bash

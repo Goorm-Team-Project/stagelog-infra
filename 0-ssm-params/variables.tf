@@ -28,6 +28,12 @@ variable "kms_key_id" {
   default     = ""
 }
 
+variable "backend_env_parameter_name" {
+  description = "SSM parameter name for unified .env payload consumed by ExternalSecret"
+  type        = string
+  default     = "/stagelog/backend/.env"
+}
+
 # Required secure values
 variable "secret_key" {
   description = "Django SECRET_KEY"
