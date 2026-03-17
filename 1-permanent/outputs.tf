@@ -75,3 +75,35 @@ output "redis_port" {
   description = "Redis endpoint port"
   value       = aws_elasticache_replication_group.stagelog_redis.port
 }
+
+# --- SQS / DLQ ---
+
+output "notifications_queue_url" {
+  description = "Main notifications SQS queue URL"
+  value       = aws_sqs_queue.notifications_queue.id
+}
+
+output "notifications_queue_arn" {
+  description = "Main notifications SQS queue ARN"
+  value       = aws_sqs_queue.notifications_queue.arn
+}
+
+output "notifications_dlq_url" {
+  description = "Notifications DLQ URL"
+  value       = aws_sqs_queue.notifications_dlq.id
+}
+
+output "notifications_dlq_arn" {
+  description = "Notifications DLQ ARN"
+  value       = aws_sqs_queue.notifications_dlq.arn
+}
+
+output "notifications_queue_name" {
+  description = "Main notifications SQS queue name"
+  value       = aws_sqs_queue.notifications_queue.name
+}
+
+output "notifications_dlq_name" {
+  description = "Notifications DLQ name"
+  value       = aws_sqs_queue.notifications_dlq.name
+}
