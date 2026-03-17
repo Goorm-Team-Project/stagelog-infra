@@ -63,6 +63,7 @@ locals {
   string_parameters = {
     for k, v in local.unified_string_params :
     "${local.prefix}/${var.service_name}/${k}" => v
+    if v != ""
   }
 
   secure_parameters = {
