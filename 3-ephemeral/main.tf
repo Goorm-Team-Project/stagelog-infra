@@ -47,7 +47,4 @@ locals {
 
   alb_sg     = data.terraform_remote_state.permanent.outputs.security_groups["alb_sg"]
   bastion_sg = data.terraform_remote_state.permanent.outputs.security_groups["bastion_sg"]
-
-  cloudfront_distribution_domain_name    = try(data.terraform_remote_state.permanent.outputs.cloudfront_distribution_domain_name, null) != null ? data.terraform_remote_state.permanent.outputs.cloudfront_distribution_domain_name : ""
-  cloudfront_distribution_hosted_zone_id = try(data.terraform_remote_state.permanent.outputs.cloudfront_distribution_hosted_zone_id, null) != null ? data.terraform_remote_state.permanent.outputs.cloudfront_distribution_hosted_zone_id : ""
 }

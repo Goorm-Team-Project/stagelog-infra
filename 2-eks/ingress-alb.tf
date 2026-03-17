@@ -35,22 +35,32 @@ data "aws_lbs" "ingress_controller_albs" {
   tags = {
     "elbv2.k8s.aws/cluster" = aws_eks_cluster.stagelog-eks.name
   }
+
+  depends_on = [ helm_release.aws_load_balancer_controller ]
+}
+
+locals {
+  target_alb_arn = one(data.aws_lbs.ingress_controller_albs.arns)
 }
 
 data "aws_lb" "ingress_controller_alb" {
-  count = length(data.aws_lbs.ingress_controller_albs.arns) > 0 ? 1 : 0
-  arn   = sort(data.aws_lbs.ingress_controller_albs.arns)[0]
+  # count = length(data.aws_lbs.ingress_controller_albs.arns) > 0 ? 1 : 0
+  # arn   = sort(data.aws_lbs.ingress_controller_albs.arns)[0]
+  arn = local.target_alb_arn
 }
 
 data "aws_lb_listener" "ingress_https" {
-  count             = length(data.aws_lb.ingress_controller_alb) > 0 ? 1 : 0
-  load_balancer_arn = data.aws_lb.ingress_controller_alb[0].arn
+  # count             = length(data.aws_lb.ingress_controller_alb) > 0 ? 1 : 0
+  # load_balancer_arn = data.aws_lb.ingress_controller_alb[0].arn
+  load_balancer_arn = local.target_alb_arn
   port              = 443
 }
 
 locals {
-  resolved_ingress_alb_https_listener_arn = try(data.aws_lb_listener.ingress_https[0].arn, "")
-  resolved_core_api_url                   = try("https://${data.aws_lb.ingress_controller_alb[0].dns_name}", "")
+  # resolved_ingress_alb_https_listener_arn = try(data.aws_lb_listener.ingress_https[0].arn, "")
+  # resolved_core_api_url                   = try("https://${data.aws_lb.ingress_controller_alb[0].dns_name}", "")
+  resolved_ingress_alb_https_listener_arn = try(data.aws_lb_listener.ingress_https.arn, "")
+  resolved_core_api_url                   = try("https://${data.aws_lb.ingress_controller_alb.dns_name}", "")
 }
 
 output "alb_https_listener_arn" {
