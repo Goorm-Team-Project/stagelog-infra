@@ -46,6 +46,37 @@ resource "aws_cloudwatch_log_group" "apigw_access_logs" {
   retention_in_days = var.log_retention_days
 }
 
+# API Gateway stage access log를 사용하려면 계정 레벨 CloudWatch role이 선행되어야 한다.
+resource "aws_iam_role" "apigw_cloudwatch_logs_role" {
+  name = "stagelog-apigw-cloudwatch-logs-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "apigateway.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "apigw_cloudwatch_logs_attach" {
+  role       = aws_iam_role.apigw_cloudwatch_logs_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+}
+
+resource "aws_api_gateway_account" "this" {
+  cloudwatch_role_arn = aws_iam_role.apigw_cloudwatch_logs_role.arn
+
+  depends_on = [
+    aws_iam_role_policy_attachment.apigw_cloudwatch_logs_attach
+  ]
+}
+
 # API Gateway -> private ALB 연결용 VPC Link
 # NOTE: REST API에서도 v2 VPC Link를 사용해 ALB listener ARN을 integration URI로 연결한다.
 resource "aws_apigatewayv2_vpc_link" "core_vpc_link" {
@@ -264,8 +295,6 @@ resource "aws_api_gateway_integration" "core_public_events_integration" {
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
   uri                     = local.core_api_integration_uri
-  connection_type         = "VPC_LINK"
-  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   # 공개 라우트에서 spoofed 헤더가 백엔드로 전달되지 않게 빈 값으로 덮어씀
   request_parameters = {
@@ -280,8 +309,6 @@ resource "aws_api_gateway_integration" "core_public_event_detail_integration" {
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
   uri                     = local.core_api_integration_uri
-  connection_type         = "VPC_LINK"
-  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -295,8 +322,6 @@ resource "aws_api_gateway_integration" "core_public_event_posts_integration" {
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
   uri                     = local.core_api_integration_uri
-  connection_type         = "VPC_LINK"
-  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -310,8 +335,6 @@ resource "aws_api_gateway_integration" "core_public_posts_integration" {
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
   uri                     = local.core_api_integration_uri
-  connection_type         = "VPC_LINK"
-  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -325,8 +348,6 @@ resource "aws_api_gateway_integration" "core_public_post_detail_integration" {
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
   uri                     = local.core_api_integration_uri
-  connection_type         = "VPC_LINK"
-  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -340,8 +361,6 @@ resource "aws_api_gateway_integration" "core_public_post_comments_integration" {
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
   uri                     = local.core_api_integration_uri
-  connection_type         = "VPC_LINK"
-  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -355,8 +374,6 @@ resource "aws_api_gateway_integration" "core_health_integration" {
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
   uri                     = local.core_api_integration_uri
-  connection_type         = "VPC_LINK"
-  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -406,8 +423,6 @@ resource "aws_api_gateway_integration" "core_protected_proxy_integration" {
   integration_http_method = "ANY"
   type                    = "HTTP_PROXY"
   uri                     = local.core_api_integration_uri
-  connection_type         = "VPC_LINK"
-  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "context.authorizer.user_id"
@@ -539,6 +554,10 @@ resource "aws_api_gateway_stage" "stagelog_core_rest_stage" {
       integrationError   = "$context.integration.error"
     })
   }
+
+  depends_on = [
+    aws_api_gateway_account.this
+  ]
 }
 
 #------------------------------------------------------------
