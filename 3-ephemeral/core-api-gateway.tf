@@ -25,12 +25,6 @@ locals {
   core_api_integration_uri   = trimspace(data.terraform_remote_state.eks.outputs.core_api_url)
   core_api_alb_arn           = trimspace(data.terraform_remote_state.eks.outputs.alb_arn)
   auth_api_lambda_invoke_uri = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${data.aws_lambda_function.auth_api.arn}/invocations"
-  alb_request_templates = {
-    "application/json" = <<-VTL
-#set($context.requestOverride.path = $context.resourcePath)
-$input.body
-VTL
-  }
 }
 
 resource "aws_api_gateway_rest_api" "stagelog_core_rest_api" {
@@ -201,6 +195,10 @@ resource "aws_api_gateway_method" "core_public_event_detail_get" {
   resource_id   = aws_api_gateway_resource.core_api_events_event_id.id
   http_method   = "GET"
   authorization = "NONE"
+
+  request_parameters = {
+    "method.request.path.event_id" = true
+  }
 }
 
 resource "aws_api_gateway_method" "core_public_posts_get" {
@@ -215,6 +213,10 @@ resource "aws_api_gateway_method" "core_public_post_detail_get" {
   resource_id   = aws_api_gateway_resource.core_api_posts_post_id.id
   http_method   = "GET"
   authorization = "NONE"
+
+  request_parameters = {
+    "method.request.path.post_id" = true
+  }
 }
 
 resource "aws_api_gateway_method" "core_public_post_comments_get" {
@@ -222,6 +224,10 @@ resource "aws_api_gateway_method" "core_public_post_comments_get" {
   resource_id   = aws_api_gateway_resource.core_api_posts_post_comments.id
   http_method   = "GET"
   authorization = "NONE"
+
+  request_parameters = {
+    "method.request.path.post_id" = true
+  }
 }
 
 resource "aws_api_gateway_method" "core_public_post_inquiry_get" {
@@ -229,6 +235,10 @@ resource "aws_api_gateway_method" "core_public_post_inquiry_get" {
   resource_id   = aws_api_gateway_resource.core_api_posts_post_inquiry.id
   http_method   = "GET"
   authorization = "NONE"
+
+  request_parameters = {
+    "method.request.path.post_id" = true
+  }
 }
 
 resource "aws_api_gateway_method" "core_health_get" {
@@ -289,6 +299,7 @@ resource "aws_api_gateway_method" "core_api_proxy_any" {
 
   request_parameters = {
     "method.request.header.Authorization" = true
+    "method.request.path.proxy"           = true
   }
 }
 
@@ -304,8 +315,7 @@ resource "aws_api_gateway_integration" "core_public_events_integration" {
   connection_type         = "VPC_LINK"
   connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
   integration_target      = local.core_api_alb_arn
-  uri                     = local.core_api_integration_uri
-  request_templates       = local.alb_request_templates
+  uri                     = "${local.core_api_integration_uri}/api/events"
 
   # 공개 라우트에서 spoofed 헤더가 백엔드로 전달되지 않게 빈 값으로 덮어씀
   request_parameters = {
@@ -322,11 +332,11 @@ resource "aws_api_gateway_integration" "core_public_event_detail_integration" {
   connection_type         = "VPC_LINK"
   connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
   integration_target      = local.core_api_alb_arn
-  uri                     = local.core_api_integration_uri
-  request_templates       = local.alb_request_templates
+  uri                     = "${local.core_api_integration_uri}/api/events/{event_id}"
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
+    "integration.request.path.event_id"    = "method.request.path.event_id"
   }
 }
 
@@ -339,8 +349,7 @@ resource "aws_api_gateway_integration" "core_public_posts_integration" {
   connection_type         = "VPC_LINK"
   connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
   integration_target      = local.core_api_alb_arn
-  uri                     = local.core_api_integration_uri
-  request_templates       = local.alb_request_templates
+  uri                     = "${local.core_api_integration_uri}/api/posts"
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -356,11 +365,11 @@ resource "aws_api_gateway_integration" "core_public_post_detail_integration" {
   connection_type         = "VPC_LINK"
   connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
   integration_target      = local.core_api_alb_arn
-  uri                     = local.core_api_integration_uri
-  request_templates       = local.alb_request_templates
+  uri                     = "${local.core_api_integration_uri}/api/posts/{post_id}"
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
+    "integration.request.path.post_id"     = "method.request.path.post_id"
   }
 }
 
@@ -373,11 +382,11 @@ resource "aws_api_gateway_integration" "core_public_post_comments_integration" {
   connection_type         = "VPC_LINK"
   connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
   integration_target      = local.core_api_alb_arn
-  uri                     = local.core_api_integration_uri
-  request_templates       = local.alb_request_templates
+  uri                     = "${local.core_api_integration_uri}/api/posts/{post_id}/comments"
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
+    "integration.request.path.post_id"     = "method.request.path.post_id"
   }
 }
 
@@ -390,11 +399,11 @@ resource "aws_api_gateway_integration" "core_public_post_inquiry_integration" {
   connection_type         = "VPC_LINK"
   connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
   integration_target      = local.core_api_alb_arn
-  uri                     = local.core_api_integration_uri
-  request_templates       = local.alb_request_templates
+  uri                     = "${local.core_api_integration_uri}/api/posts/{post_id}/inquiry"
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
+    "integration.request.path.post_id"     = "method.request.path.post_id"
   }
 }
 
@@ -408,7 +417,6 @@ resource "aws_api_gateway_integration" "core_health_integration" {
   connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
   integration_target      = local.core_api_alb_arn
   uri                     = local.core_api_integration_uri
-  request_templates       = local.alb_request_templates
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -460,11 +468,11 @@ resource "aws_api_gateway_integration" "core_protected_proxy_integration" {
   connection_type         = "VPC_LINK"
   connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
   integration_target      = local.core_api_alb_arn
-  uri                     = local.core_api_integration_uri
-  request_templates       = local.alb_request_templates
+  uri                     = "${local.core_api_integration_uri}/api/{proxy}"
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "context.authorizer.user_id"
+    "integration.request.path.proxy"       = "method.request.path.proxy"
   }
 }
 
@@ -520,37 +528,50 @@ resource "aws_api_gateway_deployment" "stagelog_core_rest_deployment" {
   rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
 
   triggers = {
-    redeployment = sha1(jsonencode([
-      aws_api_gateway_method.core_public_events_get.id,
-      aws_api_gateway_method.core_public_event_detail_get.id,
-      aws_api_gateway_method.core_public_posts_get.id,
-      aws_api_gateway_method.core_public_post_detail_get.id,
-      aws_api_gateway_method.core_public_post_comments_get.id,
-      aws_api_gateway_method.core_public_post_inquiry_get.id,
-      aws_api_gateway_method.core_health_get.id,
-      aws_api_gateway_method.core_auth_root_any.id,
-      aws_api_gateway_method.core_auth_proxy_any.id,
-      aws_api_gateway_method.core_auth_keep_get.id,
-      aws_api_gateway_method.core_auth_logout_post.id,
-      aws_api_gateway_method.core_api_proxy_any.id,
-      local.core_api_alb_arn,
-      local.core_api_integration_uri,
-      aws_apigatewayv2_vpc_link.core_vpc_link.id,
-      aws_api_gateway_integration.core_public_events_integration.id,
-      aws_api_gateway_integration.core_public_event_detail_integration.id,
-      aws_api_gateway_integration.core_public_posts_integration.id,
-      aws_api_gateway_integration.core_public_post_detail_integration.id,
-      aws_api_gateway_integration.core_public_post_comments_integration.id,
-      aws_api_gateway_integration.core_public_post_inquiry_integration.id,
-      aws_api_gateway_integration.core_health_integration.id,
-      aws_api_gateway_integration.core_auth_root_any_integration.id,
-      aws_api_gateway_integration.core_auth_proxy_any_integration.id,
-      aws_api_gateway_integration.core_auth_keep_get_integration.id,
-      aws_api_gateway_integration.core_auth_logout_post_integration.id,
-      aws_api_gateway_integration.core_protected_proxy_integration.id,
-      aws_api_gateway_gateway_response.core_unauthorized.id,
-      aws_api_gateway_gateway_response.core_access_denied.id,
-    ]))
+    redeployment = sha1(jsonencode({
+      methods = [
+        aws_api_gateway_method.core_public_events_get.id,
+        aws_api_gateway_method.core_public_event_detail_get.id,
+        aws_api_gateway_method.core_public_posts_get.id,
+        aws_api_gateway_method.core_public_post_detail_get.id,
+        aws_api_gateway_method.core_public_post_comments_get.id,
+        aws_api_gateway_method.core_public_post_inquiry_get.id,
+        aws_api_gateway_method.core_health_get.id,
+        aws_api_gateway_method.core_auth_root_any.id,
+        aws_api_gateway_method.core_auth_proxy_any.id,
+        aws_api_gateway_method.core_auth_keep_get.id,
+        aws_api_gateway_method.core_auth_logout_post.id,
+        aws_api_gateway_method.core_api_proxy_any.id,
+      ]
+      upstream = {
+        alb_arn             = local.core_api_alb_arn
+        base_uri            = local.core_api_integration_uri
+        vpc_link_id         = aws_apigatewayv2_vpc_link.core_vpc_link.id
+        public_events_uri   = aws_api_gateway_integration.core_public_events_integration.uri
+        event_detail_uri    = aws_api_gateway_integration.core_public_event_detail_integration.uri
+        public_posts_uri    = aws_api_gateway_integration.core_public_posts_integration.uri
+        post_detail_uri     = aws_api_gateway_integration.core_public_post_detail_integration.uri
+        post_comments_uri   = aws_api_gateway_integration.core_public_post_comments_integration.uri
+        post_inquiry_uri    = aws_api_gateway_integration.core_public_post_inquiry_integration.uri
+        health_uri          = aws_api_gateway_integration.core_health_integration.uri
+        protected_proxy_uri = aws_api_gateway_integration.core_protected_proxy_integration.uri
+        event_detail_params = aws_api_gateway_integration.core_public_event_detail_integration.request_parameters
+        post_detail_params  = aws_api_gateway_integration.core_public_post_detail_integration.request_parameters
+        comments_params     = aws_api_gateway_integration.core_public_post_comments_integration.request_parameters
+        inquiry_params      = aws_api_gateway_integration.core_public_post_inquiry_integration.request_parameters
+        proxy_params        = aws_api_gateway_integration.core_protected_proxy_integration.request_parameters
+      }
+      lambda_integrations = [
+        aws_api_gateway_integration.core_auth_root_any_integration.id,
+        aws_api_gateway_integration.core_auth_proxy_any_integration.id,
+        aws_api_gateway_integration.core_auth_keep_get_integration.id,
+        aws_api_gateway_integration.core_auth_logout_post_integration.id,
+      ]
+      gateway_responses = [
+        aws_api_gateway_gateway_response.core_unauthorized.id,
+        aws_api_gateway_gateway_response.core_access_denied.id,
+      ]
+    }))
   }
 
   lifecycle {
