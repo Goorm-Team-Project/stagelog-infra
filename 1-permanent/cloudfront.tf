@@ -70,6 +70,7 @@ resource "aws_cloudfront_distribution" "uploads_cdn" {
 resource "aws_cloudfront_distribution" "stagelog_cdn" {
   enabled = true
   aliases = ["pearlinvest.click", "www.pearlinvest.click"]
+  default_root_object = "index.html"
 
   tags = { Name = "stagelog-cloudfront" }
 
