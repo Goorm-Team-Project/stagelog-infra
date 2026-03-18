@@ -121,6 +121,18 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
     cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id # S3 캐시 정책
   }
 
+  custom_error_response {
+    error_code            = 403
+    response_code         = 200
+    response_page_path    = "/index.html"
+  }
+
+  custom_error_response {
+    error_code            = 404
+    response_code         = 200
+    response_page_path    = "/index.html"
+  }
+
   # 제한 사항
   restrictions {
     geo_restriction {
