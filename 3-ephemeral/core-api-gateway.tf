@@ -318,9 +318,6 @@ resource "aws_api_gateway_integration" "core_public_events_integration" {
   uri                     = "${local.core_api_integration_uri}/api/events"
 
   # 공개 라우트에서 spoofed 헤더가 백엔드로 전달되지 않게 빈 값으로 덮어씀
-  request_parameters = {
-    "integration.request.header.X-User-Id" = "''"
-  }
 }
 
 resource "aws_api_gateway_integration" "core_public_event_detail_integration" {
@@ -335,8 +332,7 @@ resource "aws_api_gateway_integration" "core_public_event_detail_integration" {
   uri                     = "${local.core_api_integration_uri}/api/events/{event_id}"
 
   request_parameters = {
-    "integration.request.header.X-User-Id" = "''"
-    "integration.request.path.event_id"    = "method.request.path.event_id"
+    "integration.request.path.event_id" = "method.request.path.event_id"
   }
 }
 
@@ -351,9 +347,6 @@ resource "aws_api_gateway_integration" "core_public_posts_integration" {
   integration_target      = local.core_api_alb_arn
   uri                     = "${local.core_api_integration_uri}/api/posts"
 
-  request_parameters = {
-    "integration.request.header.X-User-Id" = "''"
-  }
 }
 
 resource "aws_api_gateway_integration" "core_public_post_detail_integration" {
@@ -368,8 +361,7 @@ resource "aws_api_gateway_integration" "core_public_post_detail_integration" {
   uri                     = "${local.core_api_integration_uri}/api/posts/{post_id}"
 
   request_parameters = {
-    "integration.request.header.X-User-Id" = "''"
-    "integration.request.path.post_id"     = "method.request.path.post_id"
+    "integration.request.path.post_id" = "method.request.path.post_id"
   }
 }
 
@@ -385,8 +377,7 @@ resource "aws_api_gateway_integration" "core_public_post_comments_integration" {
   uri                     = "${local.core_api_integration_uri}/api/posts/{post_id}/comments"
 
   request_parameters = {
-    "integration.request.header.X-User-Id" = "''"
-    "integration.request.path.post_id"     = "method.request.path.post_id"
+    "integration.request.path.post_id" = "method.request.path.post_id"
   }
 }
 
@@ -402,8 +393,7 @@ resource "aws_api_gateway_integration" "core_public_post_inquiry_integration" {
   uri                     = "${local.core_api_integration_uri}/api/posts/{post_id}/inquiry"
 
   request_parameters = {
-    "integration.request.header.X-User-Id" = "''"
-    "integration.request.path.post_id"     = "method.request.path.post_id"
+    "integration.request.path.post_id" = "method.request.path.post_id"
   }
 }
 
