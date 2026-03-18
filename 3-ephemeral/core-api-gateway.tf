@@ -23,7 +23,14 @@ data "aws_security_group" "lambda_sg" {
 #------------------------------------------------------------
 locals {
   core_api_integration_uri   = trimspace(data.terraform_remote_state.eks.outputs.core_api_url)
+  core_api_alb_arn           = trimspace(data.terraform_remote_state.eks.outputs.alb_arn)
   auth_api_lambda_invoke_uri = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${data.aws_lambda_function.auth_api.arn}/invocations"
+  alb_request_templates = {
+    "application/json" = <<-VTL
+#set($context.requestOverride.path = $context.resourcePath)
+$input.body
+VTL
+  }
 }
 
 resource "aws_api_gateway_rest_api" "stagelog_core_rest_api" {
@@ -136,12 +143,6 @@ resource "aws_api_gateway_resource" "core_api_events_event_id" {
   path_part   = "{event_id}"
 }
 
-resource "aws_api_gateway_resource" "core_api_events_event_posts" {
-  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
-  parent_id   = aws_api_gateway_resource.core_api_events_event_id.id
-  path_part   = "posts"
-}
-
 resource "aws_api_gateway_resource" "core_api_posts" {
   rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
   parent_id   = aws_api_gateway_resource.core_api_root_api.id
@@ -158,6 +159,12 @@ resource "aws_api_gateway_resource" "core_api_posts_post_comments" {
   rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
   parent_id   = aws_api_gateway_resource.core_api_posts_post_id.id
   path_part   = "comments"
+}
+
+resource "aws_api_gateway_resource" "core_api_posts_post_inquiry" {
+  rest_api_id = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  parent_id   = aws_api_gateway_resource.core_api_posts_post_id.id
+  path_part   = "inquiry"
 }
 
 resource "aws_api_gateway_resource" "core_health" {
@@ -196,13 +203,6 @@ resource "aws_api_gateway_method" "core_public_event_detail_get" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_method" "core_public_event_posts_get" {
-  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
-  resource_id   = aws_api_gateway_resource.core_api_events_event_posts.id
-  http_method   = "GET"
-  authorization = "NONE"
-}
-
 resource "aws_api_gateway_method" "core_public_posts_get" {
   rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
   resource_id   = aws_api_gateway_resource.core_api_posts.id
@@ -220,6 +220,13 @@ resource "aws_api_gateway_method" "core_public_post_detail_get" {
 resource "aws_api_gateway_method" "core_public_post_comments_get" {
   rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
   resource_id   = aws_api_gateway_resource.core_api_posts_post_comments.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "core_public_post_inquiry_get" {
+  rest_api_id   = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id   = aws_api_gateway_resource.core_api_posts_post_inquiry.id
   http_method   = "GET"
   authorization = "NONE"
 }
@@ -294,7 +301,11 @@ resource "aws_api_gateway_integration" "core_public_events_integration" {
   http_method             = aws_api_gateway_method.core_public_events_get.http_method
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  integration_target      = local.core_api_alb_arn
   uri                     = local.core_api_integration_uri
+  request_templates       = local.alb_request_templates
 
   # 공개 라우트에서 spoofed 헤더가 백엔드로 전달되지 않게 빈 값으로 덮어씀
   request_parameters = {
@@ -308,20 +319,11 @@ resource "aws_api_gateway_integration" "core_public_event_detail_integration" {
   http_method             = aws_api_gateway_method.core_public_event_detail_get.http_method
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  integration_target      = local.core_api_alb_arn
   uri                     = local.core_api_integration_uri
-
-  request_parameters = {
-    "integration.request.header.X-User-Id" = "''"
-  }
-}
-
-resource "aws_api_gateway_integration" "core_public_event_posts_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
-  resource_id             = aws_api_gateway_resource.core_api_events_event_posts.id
-  http_method             = aws_api_gateway_method.core_public_event_posts_get.http_method
-  integration_http_method = "GET"
-  type                    = "HTTP_PROXY"
-  uri                     = local.core_api_integration_uri
+  request_templates       = local.alb_request_templates
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -334,7 +336,11 @@ resource "aws_api_gateway_integration" "core_public_posts_integration" {
   http_method             = aws_api_gateway_method.core_public_posts_get.http_method
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  integration_target      = local.core_api_alb_arn
   uri                     = local.core_api_integration_uri
+  request_templates       = local.alb_request_templates
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -347,7 +353,11 @@ resource "aws_api_gateway_integration" "core_public_post_detail_integration" {
   http_method             = aws_api_gateway_method.core_public_post_detail_get.http_method
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  integration_target      = local.core_api_alb_arn
   uri                     = local.core_api_integration_uri
+  request_templates       = local.alb_request_templates
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -360,7 +370,28 @@ resource "aws_api_gateway_integration" "core_public_post_comments_integration" {
   http_method             = aws_api_gateway_method.core_public_post_comments_get.http_method
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  integration_target      = local.core_api_alb_arn
   uri                     = local.core_api_integration_uri
+  request_templates       = local.alb_request_templates
+
+  request_parameters = {
+    "integration.request.header.X-User-Id" = "''"
+  }
+}
+
+resource "aws_api_gateway_integration" "core_public_post_inquiry_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.stagelog_core_rest_api.id
+  resource_id             = aws_api_gateway_resource.core_api_posts_post_inquiry.id
+  http_method             = aws_api_gateway_method.core_public_post_inquiry_get.http_method
+  integration_http_method = "GET"
+  type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  integration_target      = local.core_api_alb_arn
+  uri                     = local.core_api_integration_uri
+  request_templates       = local.alb_request_templates
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -373,7 +404,11 @@ resource "aws_api_gateway_integration" "core_health_integration" {
   http_method             = aws_api_gateway_method.core_health_get.http_method
   integration_http_method = "GET"
   type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  integration_target      = local.core_api_alb_arn
   uri                     = local.core_api_integration_uri
+  request_templates       = local.alb_request_templates
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "''"
@@ -422,7 +457,11 @@ resource "aws_api_gateway_integration" "core_protected_proxy_integration" {
   http_method             = aws_api_gateway_method.core_api_proxy_any.http_method
   integration_http_method = "ANY"
   type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_apigatewayv2_vpc_link.core_vpc_link.id
+  integration_target      = local.core_api_alb_arn
   uri                     = local.core_api_integration_uri
+  request_templates       = local.alb_request_templates
 
   request_parameters = {
     "integration.request.header.X-User-Id" = "context.authorizer.user_id"
@@ -484,22 +523,25 @@ resource "aws_api_gateway_deployment" "stagelog_core_rest_deployment" {
     redeployment = sha1(jsonencode([
       aws_api_gateway_method.core_public_events_get.id,
       aws_api_gateway_method.core_public_event_detail_get.id,
-      aws_api_gateway_method.core_public_event_posts_get.id,
       aws_api_gateway_method.core_public_posts_get.id,
       aws_api_gateway_method.core_public_post_detail_get.id,
       aws_api_gateway_method.core_public_post_comments_get.id,
+      aws_api_gateway_method.core_public_post_inquiry_get.id,
       aws_api_gateway_method.core_health_get.id,
       aws_api_gateway_method.core_auth_root_any.id,
       aws_api_gateway_method.core_auth_proxy_any.id,
       aws_api_gateway_method.core_auth_keep_get.id,
       aws_api_gateway_method.core_auth_logout_post.id,
       aws_api_gateway_method.core_api_proxy_any.id,
+      local.core_api_alb_arn,
+      local.core_api_integration_uri,
+      aws_apigatewayv2_vpc_link.core_vpc_link.id,
       aws_api_gateway_integration.core_public_events_integration.id,
       aws_api_gateway_integration.core_public_event_detail_integration.id,
-      aws_api_gateway_integration.core_public_event_posts_integration.id,
       aws_api_gateway_integration.core_public_posts_integration.id,
       aws_api_gateway_integration.core_public_post_detail_integration.id,
       aws_api_gateway_integration.core_public_post_comments_integration.id,
+      aws_api_gateway_integration.core_public_post_inquiry_integration.id,
       aws_api_gateway_integration.core_health_integration.id,
       aws_api_gateway_integration.core_auth_root_any_integration.id,
       aws_api_gateway_integration.core_auth_proxy_any_integration.id,
@@ -518,10 +560,10 @@ resource "aws_api_gateway_deployment" "stagelog_core_rest_deployment" {
   depends_on = [
     aws_api_gateway_integration.core_public_events_integration,
     aws_api_gateway_integration.core_public_event_detail_integration,
-    aws_api_gateway_integration.core_public_event_posts_integration,
     aws_api_gateway_integration.core_public_posts_integration,
     aws_api_gateway_integration.core_public_post_detail_integration,
     aws_api_gateway_integration.core_public_post_comments_integration,
+    aws_api_gateway_integration.core_public_post_inquiry_integration,
     aws_api_gateway_integration.core_health_integration,
     aws_api_gateway_integration.core_auth_root_any_integration,
     aws_api_gateway_integration.core_auth_proxy_any_integration,
@@ -580,31 +622,8 @@ resource "aws_lambda_permission" "allow_apigw_rest_core_auth_api" {
 }
 
 #------------------------------------------------------------
-# REST API Custom Domain
-#------------------------------------------------------------
-resource "aws_api_gateway_domain_name" "api_custom_domain" {
-  domain_name              = var.api_domain_name
-  regional_certificate_arn = data.aws_acm_certificate.api_domain.arn
-  security_policy          = "TLS_1_2"
-
-  endpoint_configuration {
-    types = ["REGIONAL"]
-  }
-}
-
-resource "aws_api_gateway_base_path_mapping" "api_domain_mapping" {
-  api_id      = aws_api_gateway_rest_api.stagelog_core_rest_api.id
-  stage_name  = aws_api_gateway_stage.stagelog_core_rest_stage.stage_name
-  domain_name = aws_api_gateway_domain_name.api_custom_domain.domain_name
-}
-
-#------------------------------------------------------------
 # Outputs
 #------------------------------------------------------------
 output "api_invoke_url" {
   value = aws_api_gateway_stage.stagelog_core_rest_stage.invoke_url
-}
-
-output "api_custom_domain_url" {
-  value = "https://${var.api_domain_name}"
 }

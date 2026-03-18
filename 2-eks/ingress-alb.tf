@@ -1,6 +1,6 @@
 # Ingress Controller managed ALB contract
 # - ALB 자체는 Ingress Controller가 생성한다.
-# - Terraform은 EKS 클러스터 태그 기준으로 ALB/HTTPS listener를 조회해 output으로 제공한다.
+# - Terraform은 EKS 클러스터 태그 기준으로 ALB/HTTP listener를 조회해 output으로 제공한다.
 
 resource "helm_release" "aws_load_balancer_controller" {
   name       = "aws-load-balancer-controller"
@@ -49,23 +49,28 @@ data "aws_lb" "ingress_controller_alb" {
   arn = local.target_alb_arn
 }
 
-data "aws_lb_listener" "ingress_https" {
+data "aws_lb_listener" "ingress_http" {
   # count             = length(data.aws_lb.ingress_controller_alb) > 0 ? 1 : 0
   # load_balancer_arn = data.aws_lb.ingress_controller_alb[0].arn
   load_balancer_arn = local.target_alb_arn
-  port              = 443
+  port              = 80
 }
 
 locals {
-  # resolved_ingress_alb_https_listener_arn = try(data.aws_lb_listener.ingress_https[0].arn, "")
+  # resolved_ingress_alb_http_listener_arn = try(data.aws_lb_listener.ingress_http[0].arn, "")
   # resolved_core_api_url                   = try("https://${data.aws_lb.ingress_controller_alb[0].dns_name}", "")
-  resolved_ingress_alb_https_listener_arn = try(data.aws_lb_listener.ingress_https.arn, "")
-  resolved_core_api_url                   = "https://api.pearlinvest.click"
+  resolved_ingress_alb_http_listener_arn = try(data.aws_lb_listener.ingress_http.arn, "")
+  resolved_core_api_url                   = "http://${data.aws_lb.ingress_controller_alb.dns_name}"
 }
 
-output "alb_https_listener_arn" {
-  description = "HTTPS listener ARN used by API Gateway VPC Link integration."
-  value       = local.resolved_ingress_alb_https_listener_arn
+output "alb_http_listener_arn" {
+  description = "HTTP listener ARN used by API Gateway VPC Link integration."
+  value       = local.resolved_ingress_alb_http_listener_arn
+}
+
+output "alb_arn" {
+  description = "Ingress ALB ARN used by API Gateway VPC Link V2 integration target."
+  value       = data.aws_lb.ingress_controller_alb.arn
 }
 
 output "core_api_url" {

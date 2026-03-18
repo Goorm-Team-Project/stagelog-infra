@@ -1,9 +1,11 @@
 locals {
   prefix = "/${var.project}/${var.environment}"
+  core_api_host = replace(trimspace(data.terraform_remote_state.eks.outputs.core_api_url), "https://", "")
 
   unified_string_params = {
     DEBUG                         = "False"
-    ALLOWED_HOSTS                 = "api.pearlinvest.click,pearlinvest.click"
+    ALLOWED_HOSTS                 = "pearlinvest.click,.ap-northeast-2.elb.amazonaws.com"
+    ALLOWED_CIDR_NETS             = "10.1.0.0/16"
     CORS_ALLOWED_ORIGINS          = "https://pearlinvest.click,https://www.pearlinvest.click"
     DB_MODE                       = "mysql"
     USE_INTERNAL_SERVICE_API      = "True"

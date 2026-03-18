@@ -82,9 +82,9 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
 
   # API Gateway 오리진 (core routes, REST API v1)
   origin {
-    domain_name = var.core_api_execute_domain_name
+    domain_name = data.terraform_remote_state.ephemeral.outputs.core_api_execute_domain_name
     origin_id   = "stagelog-core-rest-api"
-    origin_path = "/${var.core_api_stage_name}"
+    origin_path = "/${data.terraform_remote_state.ephemeral.outputs.core_api_stage_name}"
 
     custom_origin_config {
       http_port              = 80
@@ -118,21 +118,6 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
     viewer_protocol_policy = "redirect-to-https"
 
     cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id # S3 캐시 정책
-  }
-
-  # SPA를 위한 에러 응답 설정: 403/404 발생 시 index.html로 리다이렉트
-  custom_error_response {
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
-  }
-
-  custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
   }
 
   # 제한 사항
