@@ -60,7 +60,7 @@ resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
     local.subnet_private_02,
   ]
 
-  instance_types = ["t3.medium"] # EC2 인스턴스 유형
+  instance_types = ["t3.large"] # EC2 인스턴스 유형
   capacity_type  = "ON_DEMAND"   # 온디맨드 인스턴스 사용
 
   scaling_config {
