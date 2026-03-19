@@ -6,8 +6,8 @@ locals {
   backend_uploads_bucket_name = data.terraform_remote_state.permanent.outputs.uploads_bucket_name
   backend_notification_table  = data.terraform_remote_state.permanent.outputs.notification_dynamodb_table_name
   backend_event_bus_arn       = data.terraform_remote_state.permanent.outputs.notification_event_bus_arn
-  backend_queue_arn           = data.terraform_remote_state.permanent.outputs.notifications_queue_arn
-  backend_dlq_arn             = data.terraform_remote_state.permanent.outputs.notifications_dlq_arn
+  backend_queue_arn           = data.terraform_remote_state.permanent.outputs.notification_sqs_queue_arn
+  backend_dlq_arn             = data.terraform_remote_state.permanent.outputs.notification_sqs_dlq_arn
 }
 
 resource "aws_iam_policy" "backend_workload" {

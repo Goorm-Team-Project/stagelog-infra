@@ -14,11 +14,14 @@ variable "notification_event_bus_name" {
   default     = "stagelog-notification-bus"
 }
 
-# EventBridge rule에서 필터링할 source 값
-variable "notification_event_source" {
-  description = "EventBridge event source emitted by outbox worker"
-  type        = string
-  default     = "stagelog.core"
+# EventBridge rule에서 필터링할 source 값 목록
+variable "notification_event_sources" {
+  description = "EventBridge event sources emitted by outbox workers"
+  type        = list(string)
+  default = [
+    "stagelog.core",
+    "stagelog.auth",
+  ]
 }
 
 # EventBridge rule에서 SQS로 전달할 detail-type 목록
@@ -148,7 +151,7 @@ resource "aws_cloudwatch_event_rule" "notification_to_sqs" {
   event_bus_name = aws_cloudwatch_event_bus.notification.name
 
   event_pattern = jsonencode({
-    source      = [var.notification_event_source]
+    source      = var.notification_event_sources
     detail-type = var.notification_event_detail_types
   })
 }
