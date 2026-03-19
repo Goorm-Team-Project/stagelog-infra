@@ -148,3 +148,21 @@ resource "aws_vpc_endpoint" "ecr_dkr_interface" {
     Name = "stagelog-vpce-ecr-dkr-interface"
   }
 }
+
+
+# Interface endpoint: STS
+resource "aws_vpc_endpoint" "sts_interface" {
+  vpc_id              = aws_vpc.stagelog-vpc.id
+  service_name        = "com.amazonaws.${data.aws_region.current.name}.sts"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+  subnet_ids = [
+    aws_subnet.stagelog-subnet-private-2a.id,
+    aws_subnet.stagelog-subnet-private-2c.id
+  ]
+  security_group_ids = [aws_security_group.vpce_sg.id]
+
+  tags = {
+    Name = "stagelog-vpce-sts-interface"
+  }
+}
