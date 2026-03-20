@@ -4,13 +4,13 @@ set -euo pipefail
 usage() {
   cat <<USAGE
 Usage:
-  sync_redis_host.sh set   [--endpoint <redis-endpoint>] [--project stagelog] [--env dev] [--service migration] [--region ap-northeast-2]
-  sync_redis_host.sh clear [--project stagelog] [--env dev] [--service migration] [--region ap-northeast-2]
+  sync_redis_host.sh set   [--endpoint <redis-endpoint>] [--project stagelog] [--env dev] [--scope shared] [--region ap-northeast-2]
+  sync_redis_host.sh clear [--project stagelog] [--env dev] [--scope shared] [--region ap-northeast-2]
 
 Behavior:
-  - set:   Writes REDIS_HOST to SSM unified path.
+  - set:   Writes REDIS_HOST to the scoped SSM path.
            If --endpoint is omitted, tries terraform output from ../2-ephemeral.
-  - clear: Writes REDIS_HOST as empty string to SSM unified path.
+  - clear: Writes REDIS_HOST as empty string to the scoped SSM path.
 USAGE
 }
 
@@ -23,7 +23,7 @@ shift || true
 
 PROJECT="stagelog"
 ENVIRONMENT="dev"
-SERVICE_NAME="migration"
+SCOPE="shared"
 REGION="ap-northeast-2"
 ENDPOINT=""
 
@@ -41,8 +41,8 @@ while [[ $# -gt 0 ]]; do
       ENVIRONMENT="${2:-}"
       shift 2
       ;;
-    --service)
-      SERVICE_NAME="${2:-}"
+    --scope)
+      SCOPE="${2:-}"
       shift 2
       ;;
     --region)
@@ -72,7 +72,6 @@ EPHEMERAL_DIR="$TF_ROOT/2-ephemeral"
 
 if [[ "$MODE" == "set" && -z "$ENDPOINT" ]]; then
   if command -v terraform >/dev/null 2>&1 && [[ -d "$EPHEMERAL_DIR" ]]; then
-    # Try common output names in order.
     for out_name in redis_primary_endpoint redis_endpoint redis_host elasticache_primary_endpoint; do
       if ENDPOINT_VAL=$(terraform -chdir="$EPHEMERAL_DIR" output -raw "$out_name" 2>/dev/null); then
         if [[ -n "$ENDPOINT_VAL" ]]; then
@@ -94,7 +93,7 @@ if [[ "$MODE" == "clear" ]]; then
   ENDPOINT=""
 fi
 
-PARAM_REDIS_HOST="/${PROJECT}/${ENVIRONMENT}/${SERVICE_NAME}/REDIS_HOST"
+PARAM_REDIS_HOST="/${PROJECT}/${ENVIRONMENT}/${SCOPE}/REDIS_HOST"
 
 aws ssm put-parameter \
   --name "$PARAM_REDIS_HOST" \

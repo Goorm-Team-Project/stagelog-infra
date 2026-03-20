@@ -23,3 +23,150 @@ resource "aws_iam_role_policy_attachment" "rds_lambda_attach_vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
   role       = aws_iam_role.stagelog_rds_lambda_role_managed.name
 }
+
+# GitHub Actions OIDC provider and deploy roles
+resource "aws_iam_openid_connect_provider" "github_actions" {
+  url = "https://token.actions.githubusercontent.com"
+
+  client_id_list = ["sts.amazonaws.com"]
+  thumbprint_list = [
+    data.tls_certificate.github_actions_oidc.certificates[0].sha1_fingerprint,
+  ]
+}
+
+resource "aws_iam_role" "stagelog_auth_github_actions_role" {
+  name = "stagelog-auth-github-actions-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "GitHubActionsOidcTrustForStagelogAuth"
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github_actions.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:Goorm-Team-Project/stagelog-auth-user:ref:refs/heads/main",
+              "repo:Goorm-Team-Project/stagelog-auth-user:ref:refs/heads/develop",
+            ]
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "stagelog_auth_github_actions_lambda_deploy" {
+  name = "stagelog-auth-github-actions-lambda-deploy"
+  role = aws_iam_role.stagelog_auth_github_actions_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "UpdateAuthLambdaCode"
+        Effect = "Allow"
+        Action = [
+          "lambda:UpdateFunctionCode",
+          "lambda:GetFunction",
+          "lambda:GetFunctionConfiguration",
+        ]
+        Resource = [
+          "arn:aws:lambda:ap-northeast-2:${data.aws_caller_identity.current.account_id}:function:stagelog-auth-api",
+          "arn:aws:lambda:ap-northeast-2:${data.aws_caller_identity.current.account_id}:function:stagelog-auth-authorizer",
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "stagelog_backend_github_actions_ecr_role" {
+  name = "stagelog-backend-github-actions-ecr-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "GitHubActionsOidcTrustForBackendRepos"
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github_actions.arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+          }
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:Goorm-Team-Project/stagelog-auth-user:ref:refs/heads/main",
+              "repo:Goorm-Team-Project/stagelog-auth-user:ref:refs/heads/develop",
+              "repo:Goorm-Team-Project/stagelog-events:ref:refs/heads/main",
+              "repo:Goorm-Team-Project/stagelog-events:ref:refs/heads/develop",
+              "repo:Goorm-Team-Project/stagelog-posts:ref:refs/heads/main",
+              "repo:Goorm-Team-Project/stagelog-posts:ref:refs/heads/develop",
+              "repo:Goorm-Team-Project/stagelog-notifications:ref:refs/heads/main",
+              "repo:Goorm-Team-Project/stagelog-notifications:ref:refs/heads/develop",
+              "repo:Goorm-Team-Project/stagelog-outbox-worker:ref:refs/heads/main",
+              "repo:Goorm-Team-Project/stagelog-outbox-worker:ref:refs/heads/develop",
+            ]
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "stagelog_backend_github_actions_ecr_push" {
+  name = "stagelog-backend-github-actions-ecr-push"
+  role = aws_iam_role.stagelog_backend_github_actions_ecr_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "EcrAuthorizationToken"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "EcrRepositoryBootstrap"
+        Effect = "Allow"
+        Action = [
+          "ecr:CreateRepository",
+          "ecr:DescribeRepositories",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "EcrPushAndRead"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:CompleteLayerUpload",
+          "ecr:DescribeImages",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart",
+        ]
+        Resource = [
+          "arn:aws:ecr:ap-northeast-2:${data.aws_caller_identity.current.account_id}:repository/stagelog-auth",
+          "arn:aws:ecr:ap-northeast-2:${data.aws_caller_identity.current.account_id}:repository/stagelog-events",
+          "arn:aws:ecr:ap-northeast-2:${data.aws_caller_identity.current.account_id}:repository/stagelog-posts",
+          "arn:aws:ecr:ap-northeast-2:${data.aws_caller_identity.current.account_id}:repository/stagelog-notifications",
+          "arn:aws:ecr:ap-northeast-2:${data.aws_caller_identity.current.account_id}:repository/stagelog-outbox-worker",
+        ]
+      }
+    ]
+  })
+}

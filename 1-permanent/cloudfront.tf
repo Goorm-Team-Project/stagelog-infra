@@ -68,8 +68,8 @@ resource "aws_cloudfront_distribution" "uploads_cdn" {
 
 # CloudFront Distribution stagelog
 resource "aws_cloudfront_distribution" "stagelog_cdn" {
-  enabled = true
-  aliases = ["pearlinvest.click", "www.pearlinvest.click"]
+  enabled             = true
+  aliases             = ["pearlinvest.click", "www.pearlinvest.click"]
   default_root_object = "index.html"
 
   tags = { Name = "stagelog-cloudfront" }
@@ -122,15 +122,15 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
   }
 
   custom_error_response {
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
+    error_code         = 403
+    response_code      = 200
+    response_page_path = "/index.html"
   }
 
   custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
+    error_code         = 404
+    response_code      = 200
+    response_page_path = "/index.html"
   }
 
   # 제한 사항

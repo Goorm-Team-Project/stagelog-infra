@@ -4,56 +4,40 @@
 
 ### stagelog-auth repo
 - [ ] `AWS_GITHUB_ACTIONS_ROLE_ARN`
-- [ ] `AUTH_LAMBDA_ARTIFACT_BUCKET`
 
 ### stagelog-infra repo
-- [ ] `TF_VAR_auth_lambda_s3_key`
-- [ ] `TF_VAR_authorizer_lambda_s3_key`
-- [ ] `TF_VAR_jwt_secret_key`
-- [ ] `TF_VAR_db_host`
-- [ ] `TF_VAR_db_user`
-- [ ] `TF_VAR_db_password`
-- [ ] `TF_VAR_db_name`
-- [ ] `TF_VAR_redis_host`
-- [ ] `TF_VAR_redis_password`
-- [ ] `TF_VAR_kakao_rest_api_key`
-- [ ] `TF_VAR_kakao_access_token_client_secret`
-- [ ] `TF_VAR_kakao_redirect_uri`
-- [ ] `TF_VAR_google_rest_api_key`
-- [ ] `TF_VAR_google_access_token_client_secret`
-- [ ] `TF_VAR_google_redirect_uri`
-- [ ] `TF_VAR_naver_rest_api_key`
-- [ ] `TF_VAR_naver_access_token_client_secret`
-- [ ] `TF_VAR_naver_redirect_uri`
-- [ ] `TF_VAR_api_domain_certificate_arn`
-- [ ] `TF_VAR_core_api_url`
-- [ ] `TF_VAR_ingress_alb_https_listener_arn` (or `TF_VAR_ingress_alb_arn`)
+- [ ] auth lambda bootstrap용 Terraform apply에 필요한 secret/var 준비 여부 확인
 
-## 2) Auth CI 워크플로 활성화
+## 2) Terraform bootstrap 선행값 준비
 
-- [ ] `/home/woosupar/stagelog-auth/.github/workflows/build-and-upload-lambda.yml`
-- [ ] `if: ${{ false }}` 제거
-- [ ] 필요 시 `on.push.branches` 추가
-
-## 3) Lambda Artifact 업로드 확인
-
-- [ ] 워크플로 실행 후 S3 업로드 성공 확인
-- [ ] 업로드된 key를 infra 변수에 반영
+- [ ] `1-permanent/terraform.tfvars` 또는 `TF_VAR_*`로 bootstrap artifact 경로 준비
   - [ ] `auth_lambda_s3_key`
   - [ ] `authorizer_lambda_s3_key`
+- [ ] bootstrap artifact가 실제로 S3 bucket에 존재하는지 확인
+- [ ] auth lambda SSM prefix 값 준비
+  - [ ] `/stagelog/dev/shared/*`
+  - [ ] `/stagelog/dev/auth-lambda/*`
 
-## 4) Terraform 반영 전 선행 수정
+## 3) Terraform 반영 전 선행 수정
 
 - [ ] `/home/woosupar/stagelog-infra/1-permanent/waf.tf` 이름 규칙 오류 수정
 - [ ] 현재 오류: `Global=API-WAF` (허용되지 않는 문자 `=`)
 
-## 5) Terraform 계획/적용
+## 4) Terraform 계획/적용
 
 - [ ] `cd /home/woosupar/stagelog-infra/1-permanent`
 - [ ] `terraform init`
 - [ ] `terraform validate`
 - [ ] `terraform plan`
 - [ ] `terraform apply`
+- [ ] 이후 auth lambda 리소스의 코드 필드는 `ignore_changes`로 CI 배포와 충돌하지 않는지 확인
+
+## 5) Auth CI 코드 배포 검증
+
+- [ ] `stagelog-auth` push 또는 수동 실행
+- [ ] `aws lambda update-function-code` 성공 확인
+- [ ] `stagelog-auth-api`
+- [ ] `stagelog-auth-authorizer`
 
 ## 6) 배포 후 기능 검증
 

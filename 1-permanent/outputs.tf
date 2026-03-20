@@ -61,6 +61,16 @@ output "auth_lambda_artifact_bucket_name" {
   value       = aws_s3_bucket.auth_lambda_artifacts.bucket
 }
 
+output "auth_github_actions_role_arn" {
+  description = "GitHub Actions IAM role ARN for auth lambda code deployments"
+  value       = aws_iam_role.stagelog_auth_github_actions_role.arn
+}
+
+output "backend_github_actions_ecr_role_arn" {
+  description = "GitHub Actions IAM role ARN for backend app ECR image builds and pushes"
+  value       = aws_iam_role.stagelog_backend_github_actions_ecr_role.arn
+}
+
 output "redis_primary_endpoint" {
   description = "Primary endpoint address for Redis"
   value       = aws_elasticache_replication_group.stagelog_redis.primary_endpoint_address
