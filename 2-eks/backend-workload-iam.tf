@@ -9,7 +9,7 @@ locals {
   backend_queue_arn           = data.terraform_remote_state.permanent.outputs.notification_sqs_queue_arn
   backend_dlq_arn             = data.terraform_remote_state.permanent.outputs.notification_sqs_dlq_arn
 
-  workload_namespace                          = "stagelog"
+  workload_namespace                          = "dev-backend"
   legacy_backend_service_account_name         = "stagelog-backend-sa"
   posts_service_account_name                  = "stagelog-posts-sa"
   notifications_api_service_account_name      = "stagelog-notifications-api-sa"
