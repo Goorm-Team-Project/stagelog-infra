@@ -17,7 +17,7 @@ locals {
     REDIS_HOST                    = "stagelog-redis.uaksc2.ng.0001.apn2.cache.amazonaws.com"
     REDIS_PORT                    = "6379"
     REDIS_DB                      = "0"
-    REDIS_PASSWORD                = ""
+    REDIS_PASSWORD                = "None"
     REDIS_SSL                     = "False"
     AUTO_BAN_ENABLED              = "False"
     AUTO_BAN_LIMIT_WINDOW_SECONDS = "60"

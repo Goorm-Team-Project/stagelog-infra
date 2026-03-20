@@ -7,3 +7,7 @@ data "terraform_remote_state" "ephemeral" {
     region = "ap-northeast-2"
   }
 }
+
+data "tls_certificate" "github_actions_oidc" {
+  url = "https://token.actions.githubusercontent.com"
+}
