@@ -1,8 +1,7 @@
 # Auth Lambda resources (auth api + custom authorizer)
 # Deployment model:
-# - CI builds zip artifacts in stagelog-auth repo
-# - CI uploads zip to S3
-# - Terraform deploys Lambda from S3 object key/version
+# - Terraform bootstraps the Lambda resources and runtime settings
+# - CI in stagelog-auth updates Lambda function code directly via AWS CLI
 # - Runtime config is loaded from SSM prefixes at Lambda cold start
 
 variable "auth_lambda_s3_key" {
@@ -191,6 +190,14 @@ resource "aws_lambda_function" "auth_api" {
   timeout           = var.auth_lambda_timeout
   memory_size       = var.auth_lambda_memory_size
 
+  lifecycle {
+    ignore_changes = [
+      s3_bucket,
+      s3_key,
+      s3_object_version,
+    ]
+  }
+
   vpc_config {
     subnet_ids = [
       aws_subnet.stagelog-subnet-private-2a.id,
@@ -221,6 +228,14 @@ resource "aws_lambda_function" "auth_authorizer" {
   s3_object_version = var.authorizer_lambda_s3_object_version
   timeout           = var.authorizer_lambda_timeout
   memory_size       = var.authorizer_lambda_memory_size
+
+  lifecycle {
+    ignore_changes = [
+      s3_bucket,
+      s3_key,
+      s3_object_version,
+    ]
+  }
 
   vpc_config {
     subnet_ids = [
