@@ -3,6 +3,7 @@
 # - CI builds zip artifacts in stagelog-auth repo
 # - CI uploads zip to S3
 # - Terraform deploys Lambda from S3 object key/version
+# - Runtime config is loaded from SSM prefixes at Lambda cold start
 
 variable "auth_lambda_s3_key" {
   description = "S3 object key for auth API lambda artifact"
@@ -74,134 +75,27 @@ variable "authorizer_lambda_memory_size" {
   default     = 256
 }
 
-variable "jwt_issuer" {
-  type    = string
-  default = "stagelog-auth"
-}
-
-variable "jwt_audience" {
-  type    = string
-  default = "stagelog-api"
-}
-
-variable "jwt_algorithm" {
-  type    = string
-  default = "HS256"
-}
-
-variable "jwt_access_ttl_seconds" {
-  type    = string
-  default = "1800"
-}
-
-variable "jwt_refresh_ttl_seconds" {
-  type    = string
-  default = "1209600"
-}
-
-variable "jwt_secret_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "jwt_public_jwk" {
-  type    = string
-  default = "{}"
-}
-
 variable "db_host" {
-  type = string
-}
-
-variable "db_port" {
-  type    = string
-  default = "3306"
-}
-
-variable "db_user" {
-  type = string
-}
-
-variable "db_name" {
-  type = string
-}
-
-variable "db_ssl_ca" {
-  type    = string
-  default = "/opt/certs/global-bundle.pem"
-}
-
-variable "redis_host" {
-  type    = string
-  default = ""
+  description = "RDS endpoint address used by compatibility outputs"
+  type        = string
 }
 
 variable "redis_port" {
-  type    = number
-  default = 6379
+  description = "Redis port used by ElastiCache resources"
+  type        = number
+  default     = 6379
 }
 
-variable "redis_db" {
-  type    = string
-  default = "0"
+variable "auth_lambda_ssm_prefixes" {
+  description = "Optional override for auth lambda SSM prefixes"
+  type        = list(string)
+  default     = []
 }
 
-variable "redis_username" {
-  type    = string
-  default = ""
-}
-
-variable "redis_password" {
-  type      = string
-  default   = ""
-  sensitive = true
-}
-
-variable "redis_ssl" {
-  type    = string
-  default = "false"
-}
-
-variable "kakao_rest_api_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "kakao_access_token_client_secret" {
-  type      = string
-  sensitive = true
-}
-
-variable "kakao_redirect_uri" {
-  type = string
-}
-
-variable "google_rest_api_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "google_access_token_client_secret" {
-  type      = string
-  sensitive = true
-}
-
-variable "google_redirect_uri" {
-  type = string
-}
-
-variable "naver_rest_api_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "naver_access_token_client_secret" {
-  type      = string
-  sensitive = true
-}
-
-variable "naver_redirect_uri" {
-  type = string
+variable "auth_lambda_ssm_kms_key_arn" {
+  description = "Optional customer-managed KMS key ARN used by SecureString auth lambda params"
+  type        = string
+  default     = ""
 }
 
 resource "aws_iam_role" "auth_lambda_execution_role" {
@@ -230,36 +124,59 @@ resource "aws_iam_role_policy_attachment" "auth_lambda_vpc" {
 }
 
 locals {
+  auth_lambda_ssm_prefixes = length(var.auth_lambda_ssm_prefixes) > 0 ? var.auth_lambda_ssm_prefixes : [
+    "/${var.project}/${var.env}/shared",
+    "/${var.project}/${var.env}/auth-lambda",
+  ]
+
+  auth_lambda_ssm_parameter_arns = flatten([
+    for prefix in local.auth_lambda_ssm_prefixes : [
+      "arn:aws:ssm:ap-northeast-2:${data.aws_caller_identity.current.account_id}:parameter${prefix}",
+      "arn:aws:ssm:ap-northeast-2:${data.aws_caller_identity.current.account_id}:parameter${prefix}/*",
+    ]
+  ])
+
   auth_lambda_env = {
-    JWT_ISSUER                        = var.jwt_issuer
-    JWT_AUDIENCE                      = var.jwt_audience
-    JWT_ALGORITHM                     = var.jwt_algorithm
-    JWT_ACCESS_TTL_SECONDS            = var.jwt_access_ttl_seconds
-    JWT_REFRESH_TTL_SECONDS           = var.jwt_refresh_ttl_seconds
-    JWT_SECRET_KEY                    = var.jwt_secret_key
-    JWT_PUBLIC_JWK                    = var.jwt_public_jwk
-    DB_HOST                           = var.db_host
-    DB_PORT                           = var.db_port
-    DB_USER                           = var.db_user
-    DB_PASSWORD                       = var.db_password
-    DB_NAME                           = var.db_name
-    DB_SSL_CA                         = var.db_ssl_ca
-    REDIS_HOST                        = var.redis_host
-    REDIS_PORT                        = tostring(var.redis_port)
-    REDIS_DB                          = var.redis_db
-    REDIS_USERNAME                    = var.redis_username
-    REDIS_PASSWORD                    = var.redis_password
-    REDIS_SSL                         = var.redis_ssl
-    KAKAO_REST_API_KEY                = var.kakao_rest_api_key
-    KAKAO_ACCESS_TOKEN_CLIENT_SECRET  = var.kakao_access_token_client_secret
-    KAKAO_REDIRECT_URI                = var.kakao_redirect_uri
-    GOOGLE_REST_API_KEY               = var.google_rest_api_key
-    GOOGLE_ACCESS_TOKEN_CLIENT_SECRET = var.google_access_token_client_secret
-    GOOGLE_REDIRECT_URI               = var.google_redirect_uri
-    NAVER_REST_API_KEY                = var.naver_rest_api_key
-    NAVER_ACCESS_TOKEN_CLIENT_SECRET  = var.naver_access_token_client_secret
-    NAVER_REDIRECT_URI                = var.naver_redirect_uri
+    AUTH_SSM_PREFIXES = join(",", local.auth_lambda_ssm_prefixes)
   }
+}
+
+resource "aws_iam_role_policy" "auth_lambda_ssm_read" {
+  name = "stagelog-auth-lambda-ssm-read"
+  role = aws_iam_role.auth_lambda_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath",
+        ]
+        Resource = local.auth_lambda_ssm_parameter_arns
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "auth_lambda_kms_decrypt" {
+  count = var.auth_lambda_ssm_kms_key_arn != "" ? 1 : 0
+
+  name = "stagelog-auth-lambda-kms-decrypt"
+  role = aws_iam_role.auth_lambda_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = var.auth_lambda_ssm_kms_key_arn
+      }
+    ]
+  })
 }
 
 resource "aws_lambda_function" "auth_api" {
@@ -289,6 +206,7 @@ resource "aws_lambda_function" "auth_api" {
   depends_on = [
     aws_iam_role_policy_attachment.auth_lambda_basic,
     aws_iam_role_policy_attachment.auth_lambda_vpc,
+    aws_iam_role_policy.auth_lambda_ssm_read,
   ]
 }
 
@@ -319,6 +237,7 @@ resource "aws_lambda_function" "auth_authorizer" {
   depends_on = [
     aws_iam_role_policy_attachment.auth_lambda_basic,
     aws_iam_role_policy_attachment.auth_lambda_vpc,
+    aws_iam_role_policy.auth_lambda_ssm_read,
   ]
 }
 
