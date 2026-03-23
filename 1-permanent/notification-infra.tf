@@ -19,7 +19,7 @@ variable "notification_event_sources" {
   description = "EventBridge event sources emitted by outbox workers"
   type        = list(string)
   default = [
-    "stagelog.core",
+    "stagelog.posts",
     "stagelog.auth",
   ]
 }
