@@ -177,6 +177,7 @@ resource "aws_iam_policy" "notifications_api_workload" {
         Sid    = "NotificationsUpdateAccess"
         Effect = "Allow"
         Action = [
+          "dynamodb:GetItem",
           "dynamodb:UpdateItem"
         ]
         Resource = [

@@ -8,7 +8,7 @@ locals {
     DB_MODE                       = "mysql"
     DB_HOST                       = "stagelog-db-managed-v2.c922amcmeywm.ap-northeast-2.rds.amazonaws.com"
     DB_USE_SSL                    = "True"
-    DB_SSL_CA                     = "/etc/ssl/certs/ca-certificates.crt"
+    DB_SSL_CA                     = "/etc/ssl/certs/rds-global-bundle.pem"
     AWS_REGION                    = var.aws_region
     S3_UPLOAD_BUCKET              = "stagelog-dev-uploads-v2"
     S3_UPLOAD_PREFIX              = "uploads/"
@@ -55,8 +55,8 @@ locals {
   }
 
   posts_string_params = {
-    DB_NAME_POSTS            = "stagelog_posts"
-    DB_USER_POSTS            = "stagelog_posts_user"
+    DB_NAME_POSTS            = "stagelog_core"
+    DB_USER_POSTS            = "stagelog_core_user"
     USE_INTERNAL_SERVICE_API = "True"
   }
 
