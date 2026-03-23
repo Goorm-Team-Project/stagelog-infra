@@ -65,26 +65,12 @@ variable "notification_sqs_max_receive_count" {
   default     = 5
 }
 
-# 변경: SSM 파라미터 경로와 태그에 사용할 환경명을 하드코딩하지 않기 위해 추가
-variable "notification_env_name" {
-  description = "Environment name used for SSM parameter path and tags"
-  type        = string
-  default     = "dev"
-}
-
-# 변경: backend / consumer / 운영자가 동일한 값을 보게 하기 위해 SSM parameter 저장 여부를 제어
-variable "notification_create_ssm_params" {
-  description = "Create SSM parameters for notification queue references"
-  type        = bool
-  default     = true
-}
-
 # 변경: 공통 태그를 한 곳에서 관리해 queue / ddb 리소스 관리성을 높임
 locals {
   notification_tags = {
     ManagedBy   = "terraform"
     Project     = "stagelog"
-    Environment = var.notification_env_name
+    Environment = var.env
     Component   = "notifications"
   }
 }
@@ -245,50 +231,6 @@ resource "aws_sqs_queue_policy" "notification_allow_eventbridge" {
       }
     ]
   })
-}
-
-# 변경: backend / consumer / 운영자가 queue URL을 SSM에서 공통으로 읽을 수 있도록 변경
-resource "aws_ssm_parameter" "notification_sqs_queue_url" {
-  count = var.notification_create_ssm_params ? 1 : 0
-
-  name  = "/stagelog/${var.notification_env_name}/sqs/notifications_queue_url"
-  type  = "String"
-  value = aws_sqs_queue.notification.id
-
-  tags = local.notification_tags
-}
-
-# 변경: IAM / policy / 운영 확인용으로 queue ARN도 SSM에 저장
-resource "aws_ssm_parameter" "notification_sqs_queue_arn" {
-  count = var.notification_create_ssm_params ? 1 : 0
-
-  name  = "/stagelog/${var.notification_env_name}/sqs/notifications_queue_arn"
-  type  = "String"
-  value = aws_sqs_queue.notification.arn
-
-  tags = local.notification_tags
-}
-
-# 변경: DLQ URL - SSM에 저장 운영 점검과 추후 주입 활용
-resource "aws_ssm_parameter" "notification_sqs_dlq_url" {
-  count = var.notification_create_ssm_params ? 1 : 0
-
-  name  = "/stagelog/${var.notification_env_name}/sqs/notifications_dlq_url"
-  type  = "String"
-  value = aws_sqs_queue.notification_dlq.id
-
-  tags = local.notification_tags
-}
-
-# 변경: DLQ ARN - SSM에 저장해 정책/운영 점검에 활용
-resource "aws_ssm_parameter" "notification_sqs_dlq_arn" {
-  count = var.notification_create_ssm_params ? 1 : 0
-
-  name  = "/stagelog/${var.notification_env_name}/sqs/notifications_dlq_arn"
-  type  = "String"
-  value = aws_sqs_queue.notification_dlq.arn
-
-  tags = local.notification_tags
 }
 
 # Notification 서비스에서 참조할 출력값들

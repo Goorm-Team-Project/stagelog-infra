@@ -1,3 +1,15 @@
+variable "project" {
+  description = "Project name used for shared naming and SSM path prefixes"
+  type        = string
+  default     = "stagelog"
+}
+
+variable "env" {
+  description = "Environment name used for shared naming and SSM path prefixes"
+  type        = string
+  default     = "dev"
+}
+
 variable "db_password" {
   description = "RDS master password"
   type        = string
