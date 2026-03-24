@@ -3,7 +3,7 @@ locals {
 
   shared_string_params = {
     DEBUG                         = "False"
-    ALLOWED_HOSTS                 = "pearlinvest.click,.ap-northeast-2.elb.amazonaws.com,auth-svc,events-svc,posts-svc,notifications-svc,auth-svc.dev-backend.svc.cluster.local,events-svc.dev-backend.svc.cluster.local,posts-svc.dev-backend.svc.cluster.local,notifications-svc.dev-backend.svc.cluster.local"
+    ALLOWED_HOSTS                 = "localhost,pearlinvest.click,.ap-northeast-2.elb.amazonaws.com,auth-svc,events-svc,posts-svc,notifications-svc,auth-svc.dev-backend.svc.cluster.local,events-svc.dev-backend.svc.cluster.local,posts-svc.dev-backend.svc.cluster.local,notifications-svc.dev-backend.svc.cluster.local"
     CORS_ALLOWED_ORIGINS          = "https://pearlinvest.click,https://www.pearlinvest.click"
     DB_MODE                       = "mysql"
     DB_HOST                       = "stagelog-db-managed-v2.c922amcmeywm.ap-northeast-2.rds.amazonaws.com"
