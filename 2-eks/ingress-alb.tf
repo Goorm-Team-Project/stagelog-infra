@@ -28,6 +28,24 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   timeout = 600
 
+  # 리소스 설정 추가
+  set {
+    name  = "resources.requests.cpu"
+    value = "100m"
+  }
+  set {
+    name  = "resources.requests.memory"
+    value = "128Mi"
+  }
+  set {
+    name  = "resources.limits.cpu"
+    value = "200m"
+  }
+  set {
+    name  = "resources.limits.memory"
+    value = "256Mi"
+  }
+
   depends_on = [aws_eks_node_group.stagelog_nodes_on_demand]
 }
 

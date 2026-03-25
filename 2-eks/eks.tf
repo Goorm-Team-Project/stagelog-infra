@@ -64,7 +64,7 @@ resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
   capacity_type  = "ON_DEMAND"   # 온디맨드 인스턴스 사용
 
   scaling_config {
-    desired_size = 1
+    desired_size = 2
     max_size     = 2
     min_size     = 1
   }
