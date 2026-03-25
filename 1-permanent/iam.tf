@@ -172,3 +172,32 @@ resource "aws_iam_role_policy" "stagelog_backend_github_actions_ecr_push" {
     ]
   })
 }
+
+resource "aws_iam_role" "stagelog_karpenter_node_role" {
+  name = "stagelog-karpenter-node-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "stagelog_karpenter_node_role_policy_attachment" {
+  for_each = toset([
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore" # 트러블슈팅용 SSM 허용
+  ])
+
+  role       = aws_iam_role.stagelog_karpenter_node_role.name
+  policy_arn = each.value
+}
