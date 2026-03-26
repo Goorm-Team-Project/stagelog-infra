@@ -34,7 +34,7 @@ resource "aws_db_instance" "stagelog-rds-managed-v2" {
   storage_encrypted = true
 
   username = "admin"
-  password = var.db_password #하드코딩 X
+  password = var.db_password
 
   # 네트워크
   db_subnet_group_name   = aws_db_subnet_group.stagelog-db-subnet-group-v2[0].name

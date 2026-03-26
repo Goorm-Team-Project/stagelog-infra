@@ -30,15 +30,20 @@ output "security_groups" {
   }
 }
 
-# RDS is unmanaged in this stack; expose endpoint from input vars for compatibility.
+data "aws_ssm_parameter" "shared_db_host" {
+  name = "/${var.project}/${var.env}/shared/DB_HOST"
+}
+
+# RDS itself is managed outside this stack, but these compatibility outputs remain
+# available by reading the shared DB host from SSM.
 output "rds_endpoint" {
   description = "RDS Endpoint Address:Port"
-  value       = format("%s:%d", var.db_host, 3306)
+  value       = format("%s:%d", nonsensitive(data.aws_ssm_parameter.shared_db_host.value), 3306)
 }
 
 output "rds_address" {
   description = "RDS Address"
-  value       = var.db_host
+  value       = nonsensitive(data.aws_ssm_parameter.shared_db_host.value)
 }
 
 output "uploads_cloudfront_domain" {

@@ -11,9 +11,10 @@ variable "env" {
 }
 
 variable "db_password" {
-  description = "RDS master password"
+  description = "RDS master password used only when manage_new_rds=true"
   type        = string
   sensitive   = true
+  default     = null
 }
 
 ########################################

@@ -46,9 +46,9 @@ resource "aws_security_group" "eks-node-sg" {
   vpc_id = aws_vpc.stagelog-vpc.id
 
   ingress {
-    from_port   = 8000
-    to_port     = 8000
-    protocol    = "tcp"
+    from_port       = 8000
+    to_port         = 8000
+    protocol        = "tcp"
     security_groups = [aws_security_group.alb-sg.id]
   }
 
@@ -59,7 +59,7 @@ resource "aws_security_group" "eks-node-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { 
+  tags = {
     "karpenter.sh/discovery" = "stagelog-eks"
   }
 }

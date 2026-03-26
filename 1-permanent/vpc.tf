@@ -37,10 +37,10 @@ resource "aws_subnet" "stagelog-subnet-private-2a" {
   vpc_id            = aws_vpc.stagelog-vpc.id
   cidr_block        = "10.1.16.0/20" # Worker Nodes가 사용할 IP 범위 (4096 IP)
   availability_zone = "ap-northeast-2a"
-  tags              = { 
-    Name = "stagelog-subnet-private-2a" 
+  tags = {
+    Name                     = "stagelog-subnet-private-2a"
     "karpenter.sh/discovery" = "stagelog-eks"
-    }
+  }
 }
 
 # private(eks) 서브넷 2
@@ -48,10 +48,10 @@ resource "aws_subnet" "stagelog-subnet-private-2c" {
   vpc_id            = aws_vpc.stagelog-vpc.id
   cidr_block        = "10.1.32.0/20" # Worker Nodes가 사용할 IP 범위 (4096 IP)
   availability_zone = "ap-northeast-2c"
-  tags              = { 
-    Name = "stagelog-subnet-private-2c" 
+  tags = {
+    Name                     = "stagelog-subnet-private-2c"
     "karpenter.sh/discovery" = "stagelog-eks"
-    }
+  }
 }
 
 # private(db) 서브넷 1

@@ -114,3 +114,26 @@ variable "naver_redirect_uri" {
   description = "Naver OAuth redirect URI"
   type        = string
 }
+
+
+variable "auth_lambda_s3_key" {
+  description = "Bootstrap S3 object key for auth API lambda artifact"
+  type        = string
+}
+
+variable "authorizer_lambda_s3_key" {
+  description = "Bootstrap S3 object key for authorizer lambda artifact"
+  type        = string
+}
+
+variable "auth_lambda_s3_object_version" {
+  description = "Bootstrap S3 object version for auth API lambda artifact"
+  type        = string
+  default     = ""
+}
+
+variable "authorizer_lambda_s3_object_version" {
+  description = "Bootstrap S3 object version for authorizer lambda artifact"
+  type        = string
+  default     = ""
+}

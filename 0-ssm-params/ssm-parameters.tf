@@ -114,6 +114,14 @@ locals {
     NAVER_ACCESS_TOKEN_CLIENT_SECRET  = var.naver_access_token_client_secret
   }
 
+
+  auth_lambda_bootstrap_string_params = {
+    AUTH_LAMBDA_S3_KEY                  = var.auth_lambda_s3_key
+    AUTHORIZER_LAMBDA_S3_KEY            = var.authorizer_lambda_s3_key
+    AUTH_LAMBDA_S3_OBJECT_VERSION       = var.auth_lambda_s3_object_version
+    AUTHORIZER_LAMBDA_S3_OBJECT_VERSION = var.authorizer_lambda_s3_object_version
+  }
+
   parameter_scopes = [
     "shared",
     "auth",
@@ -122,6 +130,7 @@ locals {
     "notifications",
     "outbox-worker",
     "auth-lambda",
+    "bootstrap-auth-lambda",
   ]
 
   string_parameters = merge(
@@ -132,6 +141,7 @@ locals {
     { for k, v in local.notifications_string_params : "${local.prefix}/notifications/${k}" => { value = v, scope = "notifications" } },
     { for k, v in local.outbox_worker_string_params : "${local.prefix}/outbox-worker/${k}" => { value = v, scope = "outbox-worker" } },
     { for k, v in local.auth_lambda_string_params : "${local.prefix}/auth-lambda/${k}" => { value = v, scope = "auth-lambda" } },
+    { for k, v in local.auth_lambda_bootstrap_string_params : "${local.prefix}/bootstrap/auth-lambda/${k}" => { value = v, scope = "bootstrap-auth-lambda" } },
   )
 
   secure_parameters = merge(

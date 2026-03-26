@@ -4,28 +4,6 @@
 # - CI in stagelog-auth updates Lambda function code directly via AWS CLI
 # - Runtime config is loaded from SSM prefixes at Lambda cold start
 
-variable "auth_lambda_s3_key" {
-  description = "S3 object key for auth API lambda artifact"
-  type        = string
-}
-
-variable "authorizer_lambda_s3_key" {
-  description = "S3 object key for authorizer lambda artifact"
-  type        = string
-}
-
-variable "auth_lambda_s3_object_version" {
-  description = "S3 object version for auth API lambda artifact (optional)"
-  type        = string
-  default     = null
-}
-
-variable "authorizer_lambda_s3_object_version" {
-  description = "S3 object version for authorizer lambda artifact (optional)"
-  type        = string
-  default     = null
-}
-
 variable "auth_lambda_function_name" {
   description = "Auth API lambda function name"
   type        = string
@@ -74,11 +52,6 @@ variable "authorizer_lambda_memory_size" {
   default     = 256
 }
 
-variable "db_host" {
-  description = "RDS endpoint address used by compatibility outputs"
-  type        = string
-}
-
 variable "redis_port" {
   description = "Redis port used by ElastiCache resources"
   type        = number
@@ -95,6 +68,26 @@ variable "auth_lambda_ssm_kms_key_arn" {
   description = "Optional customer-managed KMS key ARN used by SecureString auth lambda params"
   type        = string
   default     = ""
+}
+
+locals {
+  auth_lambda_bootstrap_ssm_prefix = "/${var.project}/${var.env}/bootstrap/auth-lambda"
+}
+
+data "aws_ssm_parameter" "auth_lambda_s3_key" {
+  name = "${local.auth_lambda_bootstrap_ssm_prefix}/AUTH_LAMBDA_S3_KEY"
+}
+
+data "aws_ssm_parameter" "authorizer_lambda_s3_key" {
+  name = "${local.auth_lambda_bootstrap_ssm_prefix}/AUTHORIZER_LAMBDA_S3_KEY"
+}
+
+data "aws_ssm_parameter" "auth_lambda_s3_object_version" {
+  name = "${local.auth_lambda_bootstrap_ssm_prefix}/AUTH_LAMBDA_S3_OBJECT_VERSION"
+}
+
+data "aws_ssm_parameter" "authorizer_lambda_s3_object_version" {
+  name = "${local.auth_lambda_bootstrap_ssm_prefix}/AUTHORIZER_LAMBDA_S3_OBJECT_VERSION"
 }
 
 resource "aws_iam_role" "auth_lambda_execution_role" {
@@ -127,6 +120,13 @@ locals {
     "/${var.project}/${var.env}/shared",
     "/${var.project}/${var.env}/auth-lambda",
   ]
+
+  auth_lambda_artifact_config = {
+    auth_api_s3_key              = data.aws_ssm_parameter.auth_lambda_s3_key.value
+    authorizer_s3_key            = data.aws_ssm_parameter.authorizer_lambda_s3_key.value
+    auth_api_s3_object_version   = trimspace(data.aws_ssm_parameter.auth_lambda_s3_object_version.value) != "" ? data.aws_ssm_parameter.auth_lambda_s3_object_version.value : null
+    authorizer_s3_object_version = trimspace(data.aws_ssm_parameter.authorizer_lambda_s3_object_version.value) != "" ? data.aws_ssm_parameter.authorizer_lambda_s3_object_version.value : null
+  }
 
   auth_lambda_ssm_parameter_arns = flatten([
     for prefix in local.auth_lambda_ssm_prefixes : [
@@ -185,8 +185,8 @@ resource "aws_lambda_function" "auth_api" {
   runtime           = var.auth_lambda_runtime
   architectures     = var.auth_lambda_architectures
   s3_bucket         = aws_s3_bucket.auth_lambda_artifacts.bucket
-  s3_key            = var.auth_lambda_s3_key
-  s3_object_version = var.auth_lambda_s3_object_version
+  s3_key            = local.auth_lambda_artifact_config.auth_api_s3_key
+  s3_object_version = local.auth_lambda_artifact_config.auth_api_s3_object_version
   timeout           = var.auth_lambda_timeout
   memory_size       = var.auth_lambda_memory_size
 
@@ -224,8 +224,8 @@ resource "aws_lambda_function" "auth_authorizer" {
   runtime           = var.auth_lambda_runtime
   architectures     = var.auth_lambda_architectures
   s3_bucket         = aws_s3_bucket.auth_lambda_artifacts.bucket
-  s3_key            = var.authorizer_lambda_s3_key
-  s3_object_version = var.authorizer_lambda_s3_object_version
+  s3_key            = local.auth_lambda_artifact_config.authorizer_s3_key
+  s3_object_version = local.auth_lambda_artifact_config.authorizer_s3_object_version
   timeout           = var.authorizer_lambda_timeout
   memory_size       = var.authorizer_lambda_memory_size
 
