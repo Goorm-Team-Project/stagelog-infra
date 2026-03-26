@@ -32,11 +32,24 @@ resource "aws_security_group" "alb-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# 보안 그룹 (EKS-Node)
+resource "aws_security_group" "eks-node-sg" {
+  name   = "stagelog-eks-node-sg"
+  vpc_id = aws_vpc.stagelog-vpc.id
+
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    security_groups = [aws_security_group.alb-sg.id]
   }
 
   egress {
@@ -44,6 +57,10 @@ resource "aws_security_group" "alb-sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { 
+    "karpenter.sh/discovery" = "stagelog-eks"
   }
 }
 
