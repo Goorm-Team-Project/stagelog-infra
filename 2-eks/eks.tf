@@ -49,6 +49,32 @@ resource "aws_eks_addon" "stagelog_eks_kubeproxy" {
   resolve_conflicts_on_update = "OVERWRITE"
 }
 
+# 1. 노드용 시작 템플릿 (Managed Node Group 전용)
+resource "aws_launch_template" "stagelog_node_lt" {
+  name_prefix   = "stagelog-node-lt-"
+
+  # 바로 이 부분에 보안 그룹 ID들을 리스트 형태로 넣습니다.
+  vpc_security_group_ids = [
+    aws_security_group.eks-node-sg.id,                         
+    aws_eks_cluster.stagelog-eks.vpc_config[0].cluster_security_group_id # EKS 기본 보안 그룹 (필수!)
+  ]
+
+  # (선택) 인스턴스 타입 등 기본 설정
+  instance_type = "t3.large"
+
+  # 노드 이름 태그 설정
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name = "stagelog-managed-node"
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 # EKS 노드 그룹(온디맨드)
 resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
   cluster_name    = aws_eks_cluster.stagelog-eks.name
@@ -60,44 +86,21 @@ resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
     local.subnet_private_02,
   ]
 
-  instance_types = ["t3.large"] # EC2 인스턴스 유형
   capacity_type  = "ON_DEMAND"   # 온디맨드 인스턴스 사용
 
-  scaling_config {
-    desired_size = 2
-    max_size     = 2
-    min_size     = 1
+  launch_template {
+    id      = aws_launch_template.stagelog_node_lt.id
+    version = "$Latest"
   }
-
-  tags = {
-    Name          = "stagelog-node-group"
-    capacity_type = "ON_DEMAND"
-  }
-}
-
-# EKS 노드 그룹(스팟)
-resource "aws_eks_node_group" "stagelog_nodes_spot" {
-  cluster_name    = aws_eks_cluster.stagelog-eks.name
-  node_group_name = "stagelog-node-group-spot"
-  node_role_arn   = aws_iam_role.stagelog_eks_node_group_role_managed.arn
-
-  subnet_ids = [
-    local.subnet_private_01,
-    local.subnet_private_02,
-  ]
-
-  instance_types = ["t3.medium"] # EC2 인스턴스 유형
-  capacity_type  = "SPOT"        # 스팟 인스턴스 사용
 
   scaling_config {
     desired_size = 1
-    max_size     = 2
+    max_size     = 1
     min_size     = 1
   }
 
   tags = {
-    Name          = "stagelog-node-group"
-    capacity_type = "SPOT"
+    capacity_type = "ON_DEMAND"
   }
 }
 
@@ -135,3 +138,74 @@ resource "aws_eks_access_policy_association" "sso_admin_policy" {
   }
 }
 
+# Karpenter가 띄운 노드가 클러스터에 '노드'로서 등록되도록 허용
+resource "aws_eks_access_entry" "karpenter_node" {
+  cluster_name      = aws_eks_cluster.stagelog-eks.name
+  principal_arn     = local.karpenter_node_role_arn
+  type              = "EC2_LINUX" # 중요: Karpenter 노드는 반드시 이 타입이어야 함
+}
+
+# 1. Karpenter 포드가 사용할 IAM Role (OIDC 연동)
+resource "aws_iam_role" "karpenter_controller_role" {
+  name = "karpenter-controller-role-stagelog"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks_oidc.arn
+        }
+        Condition = {
+          StringEquals = {
+            # "karpenter" 네임스페이스의 "karpenter" 서비스 어카운트만 이 역할을 쓸 수 있게 제한
+            "${replace(aws_iam_openid_connect_provider.eks_oidc.url, "https://", "")}:sub" : "system:serviceaccount:karpenter:karpenter"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# 2. Karpenter가 EC2를 생성/삭제할 수 있는 권한 정책
+resource "aws_iam_policy" "karpenter_controller_policy" {
+  name = "KarpenterControllerPolicy-stagelog"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # EC2 인스턴스를 사고 팔고 태그 다는 데 필요한 최소 권한
+        Action = [
+          "ec2:CreateFleet",
+          "ec2:CreateLaunchTemplate",
+          "ec2:CreateTags",
+          "ec2:DescribeAvailabilityZones",
+          "ec2:DescribeImages",
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceTypeOfferings",
+          "ec2:DescribeInstanceTypes",
+          "ec2:DescribeLaunchTemplates",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeSubnets",
+          "ec2:RunInstances",
+          "ec2:TerminateInstances",
+          "ec2:DeleteLaunchTemplate",
+          "iam:PassRole",
+          "ssm:GetParameter",
+          "pricing:GetProducts"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# 3. Role과 Policy 연결
+resource "aws_iam_role_policy_attachment" "karpenter_controller_attach" {
+  role       = aws_iam_role.karpenter_controller_role.name
+  policy_arn = aws_iam_policy.karpenter_controller_policy.arn
+}

@@ -55,4 +55,6 @@ locals {
 
   alb_sg     = data.terraform_remote_state.permanent.outputs.security_groups["alb_sg"]
   bastion_sg = data.terraform_remote_state.permanent.outputs.security_groups["bastion_sg"]
+
+  karpenter_node_role_arn = data.terraform_remote_state.permanent.outputs.karpenter_node_role_arn
 }

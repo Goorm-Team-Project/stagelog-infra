@@ -201,3 +201,68 @@ resource "aws_iam_role_policy_attachment" "stagelog_karpenter_node_role_policy_a
   role       = aws_iam_role.stagelog_karpenter_node_role.name
   policy_arn = each.value
 }
+
+# 1. Karpenter 포드가 사용할 IAM Role (OIDC 연동)
+resource "aws_iam_role" "karpenter_controller_role" {
+  name = "karpenter-controller-role-stagelog"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Effect = "Allow"
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.eks_oidc.arn
+        }
+        Condition = {
+          StringEquals = {
+            # "karpenter" 네임스페이스의 "karpenter" 서비스 어카운트만 이 역할을 쓸 수 있게 제한
+            "${replace(aws_iam_openid_connect_provider.eks_oidc.url, "https://", "")}:sub" : "system:serviceaccount:karpenter:karpenter"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# 2. Karpenter가 EC2를 생성/삭제할 수 있는 권한 정책
+resource "aws_iam_policy" "karpenter_controller_policy" {
+  name = "KarpenterControllerPolicy-stagelog"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # EC2 인스턴스를 사고 팔고 태그 다는 데 필요한 최소 권한
+        Action = [
+          "ec2:CreateFleet",
+          "ec2:CreateLaunchTemplate",
+          "ec2:CreateTags",
+          "ec2:DescribeAvailabilityZones",
+          "ec2:DescribeImages",
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceTypeOfferings",
+          "ec2:DescribeInstanceTypes",
+          "ec2:DescribeLaunchTemplates",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeSubnets",
+          "ec2:RunInstances",
+          "ec2:TerminateInstances",
+          "ec2:DeleteLaunchTemplate",
+          "iam:PassRole",
+          "ssm:GetParameter",
+          "pricing:GetProducts"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# 3. Role과 Policy 연결
+resource "aws_iam_role_policy_attachment" "karpenter_controller_attach" {
+  role       = aws_iam_role.karpenter_controller_role.name
+  policy_arn = aws_iam_policy.karpenter_controller_policy.arn
+}
