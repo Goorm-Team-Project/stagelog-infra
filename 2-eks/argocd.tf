@@ -7,6 +7,11 @@ resource "helm_release" "argocd" {
   namespace        = "argocd"
   create_namespace = true
 
+  set {
+    name  = "global.nodeSelector.eks\\.amazonaws\\.com/nodegroup"
+    value = "stagelog-node-group-on-demand"
+  }
+
 # 1. Application Controller (동기화 엔진 - 대규모 리소스 감시 시 부하 증가)
   set {
     name  = "controller.resources.requests.cpu"

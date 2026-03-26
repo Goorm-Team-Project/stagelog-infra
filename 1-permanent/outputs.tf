@@ -90,11 +90,9 @@ output "redis_port" {
   description = "Redis endpoint port"
   value       = aws_elasticache_replication_group.stagelog_redis.port
 }
-<<<<<<< HEAD
-=======
 
 output "karpenter_node_role_arn" {
   description = "Karpenter Node Role ARN"
   value       = aws_iam_role.stagelog_karpenter_node_role.arn
 }
->>>>>>> 995ea851ce5897297031a8d924b0d203a5c83dea
+

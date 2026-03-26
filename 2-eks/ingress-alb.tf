@@ -30,6 +30,10 @@ resource "helm_release" "aws_load_balancer_controller" {
 
   # 리소스 설정 추가
   set {
+    name  = "nodeSelector.eks\\.amazonaws\\.com/nodegroup"
+    value = "stagelog-node-group-on-demand"
+  }
+  set {
     name  = "resources.requests.cpu"
     value = "100m"
   }

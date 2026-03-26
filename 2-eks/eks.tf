@@ -177,28 +177,114 @@ resource "aws_iam_policy" "karpenter_controller_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        # EC2 인스턴스를 사고 팔고 태그 다는 데 필요한 최소 권한
+        Sid    = "Karpenter"
+        Effect = "Allow"
         Action = [
-          "ec2:CreateFleet",
-          "ec2:CreateLaunchTemplate",
-          "ec2:CreateTags",
-          "ec2:DescribeAvailabilityZones",
-          "ec2:DescribeImages",
-          "ec2:DescribeInstances",
-          "ec2:DescribeInstanceTypeOfferings",
-          "ec2:DescribeInstanceTypes",
-          "ec2:DescribeLaunchTemplates",
-          "ec2:DescribeSecurityGroups",
-          "ec2:DescribeSubnets",
-          "ec2:RunInstances",
-          "ec2:TerminateInstances",
-          "ec2:DeleteLaunchTemplate",
-          "iam:PassRole",
           "ssm:GetParameter",
+          "ec2:DescribeImages",
+          "ec2:RunInstances",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeLaunchTemplates",
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceTypes",
+          "ec2:DescribeInstanceTypeOfferings",
+          "ec2:DeleteLaunchTemplate",
+          "ec2:CreateTags",
+          "ec2:CreateLaunchTemplate",
+          "ec2:CreateFleet",
+          "ec2:DescribeSpotPriceHistory",
           "pricing:GetProducts"
         ]
+        Resource = "*"
+      },
+      {
+        Sid    = "ConditionalEC2Termination"
+        Effect = "Allow"
+        Action = "ec2:TerminateInstances"
+        Condition = {
+          StringLike = {
+            "ec2:ResourceTag/karpenter.sh/nodepool" = "*"
+          }
+        }
+        Resource = "*"
+      },
+      {
+        Sid    = "PassNodeIAMRole"
+        Effect = "Allow"
+        Action = "iam:PassRole"
+        # 중요: 본인이 만든 Node Role의 ARN으로 지정하세요.
+        Resource = aws_iam_role.stagelog_karpenter_node_role.arn 
+      },
+      {
+        Sid    = "EKSClusterEndpointLookup"
+        Effect = "Allow"
+        Action = "eks:DescribeCluster"
+        Resource = aws_eks_cluster.stagelog-eks.arn
+      },
+      {
+        Sid    = "AllowScopedInstanceProfileCreationActions"
+        Effect = "Allow"
+        Resource = "*"
+        Action   = ["iam:CreateInstanceProfile"]
+        Condition = {
+          StringEquals = {
+            "aws:RequestTag/kubernetes.io/cluster/stagelog-eks" = "owned"
+            "aws:RequestTag/topology.kubernetes.io/region"      = "ap-northeast-2"
+          }
+          StringLike = {
+            "aws:RequestTag/karpenter.k8s.aws/ec2nodeclass" = "*"
+          }
+        }
+      },
+      {
+        Sid    = "AllowScopedInstanceProfileTagActions"
+        Effect = "Allow"
+        Resource = "*"
+        Action   = ["iam:TagInstanceProfile"]
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/kubernetes.io/cluster/stagelog-eks" = "owned"
+            "aws:ResourceTag/topology.kubernetes.io/region"      = "ap-northeast-2"
+            "aws:RequestTag/kubernetes.io/cluster/stagelog-eks"  = "owned"
+            "aws:RequestTag/topology.kubernetes.io/region"       = "ap-northeast-2"
+          }
+          StringLike = {
+            "aws:ResourceTag/karpenter.k8s.aws/ec2nodeclass" = "*"
+            "aws:RequestTag/karpenter.k8s.aws/ec2nodeclass"  = "*"
+          }
+        }
+      },
+      {
+        Sid    = "AllowScopedInstanceProfileActions"
+        Effect = "Allow"
+        Resource = "*"
+        Action = [
+          "iam:AddRoleToInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile",
+          "iam:DeleteInstanceProfile"
+        ]
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/kubernetes.io/cluster/stagelog-eks" = "owned"
+            "aws:ResourceTag/topology.kubernetes.io/region"      = "ap-northeast-2"
+          }
+          StringLike = {
+            "aws:ResourceTag/karpenter.k8s.aws/ec2nodeclass" = "*"
+          }
+        }
+      },
+      {
+        Sid      = "AllowInstanceProfileReadActions"
         Effect   = "Allow"
         Resource = "*"
+        Action   = "iam:GetInstanceProfile"
+      },
+      {
+        Sid      = "AllowUnscopedInstanceProfileListAction"
+        Effect   = "Allow"
+        Resource = "*"
+        Action   = "iam:ListInstanceProfiles"
       }
     ]
   })
