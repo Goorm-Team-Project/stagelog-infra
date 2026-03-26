@@ -55,7 +55,7 @@ resource "aws_launch_template" "stagelog_node_lt" {
 
   # 바로 이 부분에 보안 그룹 ID들을 리스트 형태로 넣습니다.
   vpc_security_group_ids = [
-    aws_security_group.eks-node-sg.id,                         
+    local.eks_node_sg_id, # EKS 노드용 SG (필수!)
     aws_eks_cluster.stagelog-eks.vpc_config[0].cluster_security_group_id # EKS 기본 보안 그룹 (필수!)
   ]
 
@@ -214,7 +214,7 @@ resource "aws_iam_policy" "karpenter_controller_policy" {
         Effect = "Allow"
         Action = "iam:PassRole"
         # 중요: 본인이 만든 Node Role의 ARN으로 지정하세요.
-        Resource = aws_iam_role.stagelog_karpenter_node_role.arn 
+        Resource = local.karpenter_node_role_arn
       },
       {
         Sid    = "EKSClusterEndpointLookup"

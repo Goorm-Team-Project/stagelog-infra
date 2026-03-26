@@ -91,8 +91,12 @@ output "redis_port" {
   value       = aws_elasticache_replication_group.stagelog_redis.port
 }
 
+output "eks_node_sg_id" {
+  description = "EKS Node Security Group ID"
+  value       = aws_security_group.eks-node-sg.id
+}
+
 output "karpenter_node_role_arn" {
   description = "Karpenter Node Role ARN"
   value       = aws_iam_role.stagelog_karpenter_node_role.arn
 }
-
