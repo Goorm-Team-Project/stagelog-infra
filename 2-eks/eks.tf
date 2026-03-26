@@ -19,6 +19,7 @@ resource "aws_eks_cluster" "stagelog-eks" {
 
   tags = {
     Name = "stagelog-eks"
+    "karpenter.sh/discovery" = "stagelog-eks"
   }
 }
 
@@ -94,8 +95,8 @@ resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
   }
 
   scaling_config {
-    desired_size = 1
-    max_size     = 1
+    desired_size = 2
+    max_size     = 2
     min_size     = 1
   }
 
