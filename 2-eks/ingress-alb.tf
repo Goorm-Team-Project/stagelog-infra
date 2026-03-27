@@ -78,7 +78,7 @@ locals {
   # resolved_ingress_alb_http_listener_arn = try(data.aws_lb_listener.ingress_http[0].arn, "")
   # resolved_core_api_url                   = try("https://${data.aws_lb.ingress_controller_alb[0].dns_name}", "")
   resolved_ingress_alb_http_listener_arn = try(data.aws_lb_listener.ingress_http.arn, "")
-  resolved_core_api_url                   = "http://${data.aws_lb.ingress_controller_alb.dns_name}"
+  resolved_core_api_url                  = "http://${data.aws_lb.ingress_controller_alb.dns_name}"
 }
 
 output "alb_http_listener_arn" {

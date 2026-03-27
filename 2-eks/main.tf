@@ -53,8 +53,8 @@ locals {
   rtb_private_01 = data.terraform_remote_state.permanent.outputs.private_route_table_ids["private-rtb-01"]
   rtb_private_02 = data.terraform_remote_state.permanent.outputs.private_route_table_ids["private-rtb-02"]
 
-  alb_sg     = data.terraform_remote_state.permanent.outputs.security_groups["alb_sg"]
-  bastion_sg = data.terraform_remote_state.permanent.outputs.security_groups["bastion_sg"]
+  alb_sg         = data.terraform_remote_state.permanent.outputs.security_groups["alb_sg"]
+  bastion_sg     = data.terraform_remote_state.permanent.outputs.security_groups["bastion_sg"]
   eks_node_sg_id = data.terraform_remote_state.permanent.outputs.eks_node_sg_id
 
   karpenter_node_role_arn = data.terraform_remote_state.permanent.outputs.karpenter_node_role_arn

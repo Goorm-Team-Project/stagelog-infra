@@ -30,15 +30,15 @@ resource "aws_sqs_queue_policy" "karpenter_interruption" {
 resource "aws_cloudwatch_event_rule" "karpenter_rules" {
   for_each = {
     spot_interruption = "EC2 Spot Instance Interruption Warning"
-    rebalance        = "EC2 Instance Rebalance Recommendation"
-    state_change     = "EC2 Instance State-change Notification"
+    rebalance         = "EC2 Instance Rebalance Recommendation"
+    state_change      = "EC2 Instance State-change Notification"
   }
 
   name        = "karpenter-${each.key}"
   description = "Karpenter interruption rule for ${each.key}"
 
   event_pattern = jsonencode({
-    source      = ["aws.ec2"]
+    source        = ["aws.ec2"]
     "detail-type" = [each.value]
   })
 }

@@ -18,7 +18,7 @@ resource "aws_eks_cluster" "stagelog-eks" {
   }
 
   tags = {
-    Name = "stagelog-eks"
+    Name                     = "stagelog-eks"
     "karpenter.sh/discovery" = "stagelog-eks"
   }
 }
@@ -52,11 +52,11 @@ resource "aws_eks_addon" "stagelog_eks_kubeproxy" {
 
 # 1. 노드용 시작 템플릿 (Managed Node Group 전용)
 resource "aws_launch_template" "stagelog_node_lt" {
-  name_prefix   = "stagelog-node-lt-"
+  name_prefix = "stagelog-node-lt-"
 
   # 바로 이 부분에 보안 그룹 ID들을 리스트 형태로 넣습니다.
   vpc_security_group_ids = [
-    local.eks_node_sg_id, # EKS 노드용 SG (필수!)
+    local.eks_node_sg_id,                                                # EKS 노드용 SG (필수!)
     aws_eks_cluster.stagelog-eks.vpc_config[0].cluster_security_group_id # EKS 기본 보안 그룹 (필수!)
   ]
 
@@ -87,7 +87,7 @@ resource "aws_eks_node_group" "stagelog_nodes_on_demand" {
     local.subnet_private_02,
   ]
 
-  capacity_type  = "ON_DEMAND"   # 온디맨드 인스턴스 사용
+  capacity_type = "ON_DEMAND" # 온디맨드 인스턴스 사용
 
   launch_template {
     id      = aws_launch_template.stagelog_node_lt.id
@@ -140,11 +140,11 @@ resource "aws_eks_access_policy_association" "sso_admin_policy" {
 }
 
 resource "aws_security_group_rule" "eks_master_to_node" {
-  type              = "ingress"
-  from_port         = 0
-  to_port           = 65535
-  protocol          = "tcp"
-  
+  type      = "ingress"
+  from_port = 0
+  to_port   = 65535
+  protocol  = "tcp"
+
   # 1번 폴더에서 생성한 노드 보안 그룹 ID (변수나 Data 소스로 가져오기)
   security_group_id = local.eks_node_sg_id
 
@@ -153,25 +153,25 @@ resource "aws_security_group_rule" "eks_master_to_node" {
 }
 
 resource "aws_security_group_rule" "node_to_cluster_api_443" {
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  
+  type      = "ingress"
+  from_port = 443
+  to_port   = 443
+  protocol  = "tcp"
+
   # 대상: EKS 클러스터가 생성한 보안 그룹
-  security_group_id        = aws_eks_cluster.stagelog-eks.vpc_config[0].cluster_security_group_id
-  
+  security_group_id = aws_eks_cluster.stagelog-eks.vpc_config[0].cluster_security_group_id
+
   # 소스: 지금 올려주신 노드 보안 그룹
   source_security_group_id = local.eks_node_sg_id
-  
-  description              = "Allow nodes to communicate with the cluster API Server"
+
+  description = "Allow nodes to communicate with the cluster API Server"
 }
 
 # Karpenter가 띄운 노드가 클러스터에 '노드'로서 등록되도록 허용
 resource "aws_eks_access_entry" "karpenter_node" {
-  cluster_name      = aws_eks_cluster.stagelog-eks.name
-  principal_arn     = local.karpenter_node_role_arn
-  type              = "EC2_LINUX" # 중요: Karpenter 노드는 반드시 이 타입이어야 함
+  cluster_name  = aws_eks_cluster.stagelog-eks.name
+  principal_arn = local.karpenter_node_role_arn
+  type          = "EC2_LINUX" # 중요: Karpenter 노드는 반드시 이 타입이어야 함
 }
 
 # 1. Karpenter 포드가 사용할 IAM Role (OIDC 연동)
@@ -246,14 +246,14 @@ resource "aws_iam_policy" "karpenter_controller_policy" {
         Resource = local.karpenter_node_role_arn
       },
       {
-        Sid    = "EKSClusterEndpointLookup"
-        Effect = "Allow"
-        Action = "eks:DescribeCluster"
+        Sid      = "EKSClusterEndpointLookup"
+        Effect   = "Allow"
+        Action   = "eks:DescribeCluster"
         Resource = aws_eks_cluster.stagelog-eks.arn
       },
       {
-        Sid    = "AllowScopedInstanceProfileCreationActions"
-        Effect = "Allow"
+        Sid      = "AllowScopedInstanceProfileCreationActions"
+        Effect   = "Allow"
         Resource = "*"
         Action   = ["iam:CreateInstanceProfile"]
         Condition = {
@@ -267,8 +267,8 @@ resource "aws_iam_policy" "karpenter_controller_policy" {
         }
       },
       {
-        Sid    = "AllowScopedInstanceProfileTagActions"
-        Effect = "Allow"
+        Sid      = "AllowScopedInstanceProfileTagActions"
+        Effect   = "Allow"
         Resource = "*"
         Action   = ["iam:TagInstanceProfile"]
         Condition = {
@@ -285,8 +285,8 @@ resource "aws_iam_policy" "karpenter_controller_policy" {
         }
       },
       {
-        Sid    = "AllowScopedInstanceProfileActions"
-        Effect = "Allow"
+        Sid      = "AllowScopedInstanceProfileActions"
+        Effect   = "Allow"
         Resource = "*"
         Action = [
           "iam:AddRoleToInstanceProfile",

@@ -46,16 +46,16 @@ resource "aws_security_group" "eks-node-sg" {
   vpc_id = aws_vpc.stagelog-vpc.id
 
   ingress {
-    from_port       = 8000
-    to_port         = 8000
-    protocol        = "tcp"
+    from_port = 8000
+    to_port   = 8000
+    protocol  = "tcp"
     cidr_blocks = [
       aws_subnet.stagelog-subnet-public-2a.cidr_block,
       aws_subnet.stagelog-subnet-public-2c.cidr_block
     ]
     description = "Allow traffic from ALB in public subnets"
   }
-  
+
   # 2. 추가: 노드 상호 간의 모든 통신 허용 (CoreDNS, 파드 간 통신 필수)
   ingress {
     from_port = 0
