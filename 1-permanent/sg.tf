@@ -49,7 +49,11 @@ resource "aws_security_group" "eks-node-sg" {
     from_port       = 8000
     to_port         = 8000
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb-sg.id]
+    cidr_blocks = [
+      aws_subnet.stagelog-subnet-public-2a.cidr_block,
+      aws_subnet.stagelog-subnet-public-2c.cidr_block
+    ]
+    description = "Allow traffic from ALB in public subnets"
   }
   
   # 2. 추가: 노드 상호 간의 모든 통신 허용 (CoreDNS, 파드 간 통신 필수)

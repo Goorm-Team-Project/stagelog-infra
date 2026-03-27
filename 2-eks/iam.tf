@@ -110,14 +110,15 @@ resource "aws_iam_role" "alb_ingress_controller_role" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRoleWithWebIdentity" # EKS OIDC provider를 통한 웹 아이덴티티 연동
+        Action = "sts:AssumeRoleWithWebIdentity"
         Effect = "Allow"
         Principal = {
           Federated = aws_iam_openid_connect_provider.eks_oidc.arn
         }
         Condition = {
           StringEquals = {
-            "${replace(aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:alb-ingress-controller-role-stagelog"
+            "${replace(aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:alb-ingress-controller-role-stagelog",
+            "${replace(aws_eks_cluster.stagelog-eks.identity[0].oidc[0].issuer, "https://", "")}:aud" = "sts.amazonaws.com"
           }
         }
       }
