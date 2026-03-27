@@ -51,6 +51,14 @@ resource "aws_security_group" "eks-node-sg" {
     protocol        = "tcp"
     security_groups = [aws_security_group.alb-sg.id]
   }
+  
+  # 2. 추가: 노드 상호 간의 모든 통신 허용 (CoreDNS, 파드 간 통신 필수)
+  ingress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    self      = true
+  }
 
   egress {
     from_port   = 0

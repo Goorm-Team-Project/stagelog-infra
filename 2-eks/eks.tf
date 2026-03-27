@@ -139,6 +139,34 @@ resource "aws_eks_access_policy_association" "sso_admin_policy" {
   }
 }
 
+resource "aws_security_group_rule" "eks_master_to_node" {
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 65535
+  protocol          = "tcp"
+  
+  # 1번 폴더에서 생성한 노드 보안 그룹 ID (변수나 Data 소스로 가져오기)
+  security_group_id = local.eks_node_sg_id
+
+  # EKS 클러스터 보안 그룹을 소스로 지정 (이게 핵심!)
+  source_security_group_id = aws_eks_cluster.stagelog-eks.vpc_config[0].cluster_security_group_id
+}
+
+resource "aws_security_group_rule" "node_to_cluster_api_443" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  
+  # 대상: EKS 클러스터가 생성한 보안 그룹
+  security_group_id        = aws_eks_cluster.stagelog-eks.vpc_config[0].cluster_security_group_id
+  
+  # 소스: 지금 올려주신 노드 보안 그룹
+  source_security_group_id = local.eks_node_sg_id
+  
+  description              = "Allow nodes to communicate with the cluster API Server"
+}
+
 # Karpenter가 띄운 노드가 클러스터에 '노드'로서 등록되도록 허용
 resource "aws_eks_access_entry" "karpenter_node" {
   cluster_name      = aws_eks_cluster.stagelog-eks.name
