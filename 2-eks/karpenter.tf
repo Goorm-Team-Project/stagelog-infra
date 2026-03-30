@@ -65,3 +65,17 @@ resource "helm_release" "karpenter" {
     aws_cloudwatch_event_target.karpenter_rules
   ]
 }
+
+# Metrics Server 설치
+resource "helm_release" "metrics_server" {
+  name       = "metrics-server"
+  repository = "https://kubernetes-sigs.github.io/metrics-server/"
+  chart      = "metrics-server"
+  namespace  = "kube-system"
+
+  # EKS 환경에서 인증서 오류를 방지하기 위한 필수 설정
+  set {
+    name  = "args"
+    value = "{--kubelet-insecure-tls}"
+  }
+}
