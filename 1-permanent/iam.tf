@@ -53,8 +53,8 @@ resource "aws_iam_role" "stagelog_auth_github_actions_role" {
           }
           StringLike = {
             "token.actions.githubusercontent.com:sub" = [
-              "repo:Goorm-Team-Project/stagelog-auth-user:ref:refs/heads/main",
-              "repo:Goorm-Team-Project/stagelog-auth-user:ref:refs/heads/develop",
+              "repo:Goorm-Team-Project/stagelog-auth:ref:refs/heads/main",
+              "repo:Goorm-Team-Project/stagelog-auth:ref:refs/heads/develop",
             ]
           }
         }
