@@ -15,6 +15,12 @@ data "aws_cloudfront_origin_request_policy" "all_viewer_except_host_header" {
   name = "Managed-AllViewerExceptHostHeader"
 }
 
+locals {
+  core_api_execute_domain_name = try(data.terraform_remote_state.ephemeral.outputs.core_api_execute_domain_name, null)
+  core_api_stage_name          = try(data.terraform_remote_state.ephemeral.outputs.core_api_stage_name, null)
+  has_core_api_origin          = local.core_api_execute_domain_name != null && local.core_api_stage_name != null
+}
+
 # CloudFront Origin Access Control Uploads
 resource "aws_cloudfront_origin_access_control" "uploads_oac" {
   name                              = "stagelog-uploads-oac"
@@ -81,32 +87,37 @@ resource "aws_cloudfront_distribution" "stagelog_cdn" {
     origin_access_control_id = aws_cloudfront_origin_access_control.stagelog_oac.id
   }
 
-  # API Gateway 오리진 (core routes, REST API v1)
-  origin {
-    domain_name = data.terraform_remote_state.ephemeral.outputs.core_api_execute_domain_name
-    origin_id   = "stagelog-core-rest-api"
-    origin_path = "/${data.terraform_remote_state.ephemeral.outputs.core_api_stage_name}"
+  # API Gateway 오리진은 ephemeral 스택 output이 있을 때만 연결한다.
+  dynamic "origin" {
+    for_each = local.has_core_api_origin ? [1] : []
+    content {
+      domain_name = local.core_api_execute_domain_name
+      origin_id   = "stagelog-core-rest-api"
+      origin_path = "/${local.core_api_stage_name}"
 
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
+      custom_origin_config {
+        http_port              = 80
+        https_port             = 443
+        origin_protocol_policy = "https-only"
+        origin_ssl_protocols   = ["TLSv1.2"]
+      }
     }
   }
 
-  # /api/* -> REST API (core routes)
-  ordered_cache_behavior {
-    path_pattern     = "/api/*"
-    target_origin_id = "stagelog-core-rest-api"
+  dynamic "ordered_cache_behavior" {
+    for_each = local.has_core_api_origin ? [1] : []
+    content {
+      path_pattern     = "/api/*"
+      target_origin_id = "stagelog-core-rest-api"
 
-    allowed_methods = ["GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "DELETE"]
-    cached_methods  = ["GET", "HEAD"]
+      allowed_methods = ["GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "DELETE"]
+      cached_methods  = ["GET", "HEAD"]
 
-    viewer_protocol_policy = "redirect-to-https"
+      viewer_protocol_policy = "redirect-to-https"
 
-    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id                       # API Gateway 캐시 정책
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id # API Gateway 오리진 요청 정책
+      cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+      origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+    }
   }
 
   # /* -> S3
