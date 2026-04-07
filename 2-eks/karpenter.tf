@@ -73,9 +73,9 @@ resource "helm_release" "metrics_server" {
   chart      = "metrics-server"
   namespace  = "kube-system"
 
-  # EKS 환경에서 인증서 오류를 방지하기 위한 필수 설정
-  set {
+  # 리스트 형태로 정확하게 전달
+  set_list {
     name  = "args"
-    value = "{--kubelet-insecure-tls}"
+    value = ["--kubelet-insecure-tls", "--kubelet-preferred-address-types=InternalIP"]
   }
 }
